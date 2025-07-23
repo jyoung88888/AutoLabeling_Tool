@@ -1,0 +1,124 @@
+:root {
+  --v-primary-base: #4CAF50;
+  --sidebar-width: 300px;
+
+  /* 기본 색상 */
+  --color-primary: #4CAF50;
+  --color-secondary: #5CBBF6;
+  --color-accent: #8c9eff;
+  --color-error: #FF5252;
+  --color-success: #4CAF50;
+  --color-info: #2196F3;
+  --color-warning: #FF9800;
+
+  /* 다크 테마 배경색 */
+  --bg-color-dark: #000000;
+  --bg-color-surface: #121212;
+  --bg-color-card: #1a1a1a;
+  --bg-color-sidebar: #1a1a1a;
+
+  /* 라이트 테마 배경색 (호환성) */
+  --bg-color-light: #f8f9fa;
+  --bg-color-white: #ffffff;
+
+  /* 테두리 색상 */
+  --border-color-light: #dee2e6;
+  --border-color-dark: #333333;
+
+  /* 다크 테마 텍스트 색상 */
+  --text-color-primary: #ffffff;
+  --text-color-secondary: #e0e0e0;
+  --text-color-light: #b3b3b3;
+  --text-color-muted: #999999;
+}
+
+/* Vuetify 호환성 향상 */
+.v-application {
+  --v-theme-primary: var(--color-primary);
+  --v-theme-secondary: var(--color-secondary);
+  --v-theme-accent: var(--color-accent);
+  --v-theme-error: var(--color-error);
+  --v-theme-success: var(--color-success);
+  --v-theme-info: var(--color-info);
+  --v-theme-warning: var(--color-warning);
+}
+
+/* 다크 테마 전역 스타일 */
+.v-application.v-theme--dark {
+  background-color: var(--bg-color-dark) !important;
+}
+
+.v-application.v-theme--dark .v-main {
+  background-color: var(--bg-color-dark) !important;
+}
+
+/* 텍스트 가독성 향상 */
+.v-application.v-theme--dark .v-card-title,
+.v-application.v-theme--dark .v-list-item-title {
+  color: var(--text-color-primary) !important;
+  font-weight: 600 !important;
+}
+
+.v-application.v-theme--dark .v-card-subtitle,
+.v-application.v-theme--dark .v-list-item-subtitle {
+  color: var(--text-color-secondary) !important;
+  font-weight: 400 !important;
+}
+
+.v-application.v-theme--dark .v-btn {
+  font-weight: 500 !important;
+}
+
+.v-application.v-theme--dark .v-chip {
+  font-weight: 500 !important;
+}
+
+.v-application.v-theme--dark .v-alert {
+  font-weight: 400 !important;
+}
+
+/* 사이드바 스타일 개선 */
+.v-application.v-theme--dark .v-navigation-drawer {
+  background-color: var(--bg-color-sidebar) !important;
+  border-right: 1px solid var(--border-color-dark) !important;
+}
+
+/* 다이얼로그 스타일 개선 */
+.v-application.v-theme--dark .v-dialog .v-card {
+  background-color: var(--bg-color-card) !important;
+  color: var(--text-color-primary) !important;
+}
+
+/* Vue 개발 도구 숨기기 */
+#__vue-devtools-global-hook__ {
+  display: none !important;
+}
+
+.__vue-devtools-floating-action-button__ {
+  display: none !important;
+}
+
+.__vue-devtools-iframe__ {
+  display: none !important;
+}
+
+/* Vue DevTools 관련 요소들 숨기기 */
+[id*="devtools"],
+[class*="devtools"],
+[data-vue-devtools] {
+  display: none !important;
+}
+
+/* 하단에 나타날 수 있는 개발 도구 버튼들 숨기기 */
+button[title*="devtools"],
+button[title*="Vue"],
+.vue-devtools-button {
+  display: none !important;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 250px;
+  }
+}
