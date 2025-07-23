@@ -408,7 +408,6 @@ project_name/
 │   ├── image001.txt        # 클래스별 바운딩 박스 정보
 │   └── ...
 ├── 📄 project_info.json   # 프로젝트 메타데이터
-└── 📄 project_class.json  # 클래스 정보
 ```
 
 ### 프로젝트 정보 파일 (project_info.json)
