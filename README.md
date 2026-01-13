@@ -665,3 +665,4 @@ cd server && python main.py  # Backend (포트 8000)
 *YOLO 모델 파라미터 최적화로 hoist, helmet 등 산업 안전 장비 검출 성능 대폭 향상*  
 *사용자 맞춤 신뢰도 설정과 최적화된 NMS로 정확하고 유연한 객체 탐지*  
 *상세한 로깅 시스템과 예외 처리 개선으로 안정적이고 투명한 라벨링 환경*
+# AutoLabeling_Tool-.ver2-
