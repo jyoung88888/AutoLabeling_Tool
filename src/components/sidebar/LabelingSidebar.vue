@@ -108,9 +108,9 @@
           @clear-files="$emit('clearFiles')"
         />
 
-        <!-- 클래스 선택 섹션 -->
+        <!-- 클래스 선택 섹션 (YOLO 모델용) -->
         <ClassSelectionSection
-          v-if="modelLoaded"
+          v-if="modelLoaded && !supportsTextPrompt"
           :available-classes="availableClasses"
           :selected-classes="selectedClasses"
           :select-all-classes="selectAllClasses"
@@ -129,9 +129,22 @@
           @dismiss-class-change-alert="$emit('dismissClassChangeAlert')"
         />
 
-        <!-- 신뢰도 설정 섹션 -->
+        <!-- 텍스트 프롬프트 섹션 (Grounding DINO용) -->
+        <TextPromptSection
+          v-if="modelLoaded && supportsTextPrompt"
+          :text-prompt="textPrompt"
+          :box-threshold="boxThreshold"
+          :text-threshold="textThreshold"
+          :prompt-applied="promptApplied"
+          @update:text-prompt="$emit('update:textPrompt', $event)"
+          @update:box-threshold="$emit('update:boxThreshold', $event)"
+          @update:text-threshold="$emit('update:textThreshold', $event)"
+          @apply-prompt="$emit('applyPrompt')"
+        />
+
+        <!-- 신뢰도 설정 섹션 (YOLO 모델용) -->
         <ConfidenceSettingsSection
-          v-if="modelLoaded"
+          v-if="modelLoaded && !supportsTextPrompt"
           :confidence-threshold="confidenceThreshold"
           @update:confidence-threshold="$emit('update:confidenceThreshold', $event)"
         />
@@ -143,7 +156,7 @@
             @click="$emit('startLabeling')"
             color="#4caf50"
             size="small"
-            :disabled="!canStartLabeling || !classSelectionApplied"
+            :disabled="!canStartLabeling || (!supportsTextPrompt && !classSelectionApplied) || (supportsTextPrompt && !promptApplied)"
             class="mb-2"
             prepend-icon="mdi-play"
             style="color: #fff;"
@@ -217,6 +230,7 @@
 import ModelSettingsSection from './ModelSettingsSection.vue'
 import ImageSelectionSection from './ImageSelectionSection.vue'
 import ClassSelectionSection from './ClassSelectionSection.vue'
+import TextPromptSection from './TextPromptSection.vue'
 import ConfidenceSettingsSection from './ConfidenceSettingsSection.vue'
 import LowConfidenceSection from './LowConfidenceSection.vue'
 import ProjectLoader from '../projects/ProjectLoader.vue'
@@ -229,6 +243,7 @@ export default {
     ModelSettingsSection,
     ImageSelectionSection,
     ClassSelectionSection,
+    TextPromptSection,
     ConfidenceSettingsSection,
     LowConfidenceSection,
     ProjectLoader,
@@ -277,6 +292,10 @@ export default {
       default: () => ['알 수 없음']
     },
     modelLoaded: {
+      type: Boolean,
+      default: false
+    },
+    supportsTextPrompt: {
       type: Boolean,
       default: false
     },
@@ -378,6 +397,23 @@ export default {
     confidenceThreshold: {
       type: Number,
       default: 0.5
+    },
+    // 텍스트 프롬프트 관련 props (Grounding DINO)
+    textPrompt: {
+      type: String,
+      default: ''
+    },
+    boxThreshold: {
+      type: Number,
+      default: 0.3
+    },
+    textThreshold: {
+      type: Number,
+      default: 0.25
+    },
+    promptApplied: {
+      type: Boolean,
+      default: false
     }
   },
   emits: [
@@ -403,7 +439,12 @@ export default {
     'collapseSidebar',
     'update:sidebarVisible',
     'openLoadProject',
-    'projectSaveComplete'
+    'projectSaveComplete',
+    // 텍스트 프롬프트 관련 emits
+    'update:textPrompt',
+    'update:boxThreshold',
+    'update:textThreshold',
+    'applyPrompt'
   ],
   methods: {
     handleExpandSidebar() {

@@ -13,6 +13,7 @@ export function useModelManagement() {
   const deviceInfo = ref(['알 수 없음'])
   const isLoadingModel = ref(false)
   const modelClasses = ref({})
+  const supportsTextPrompt = ref(false)  // Grounding DINO 등 텍스트 프롬프트 지원 여부
 
   // Methods
   const refreshModels = async () => {
@@ -172,6 +173,10 @@ export function useModelManagement() {
       modelLoaded.value = true
       modelStatusSuccess.value = true
 
+      // 텍스트 프롬프트 지원 여부 확인 (Grounding DINO 등)
+      supportsTextPrompt.value = data.supports_text_prompt || false
+      console.log('텍스트 프롬프트 지원:', supportsTextPrompt.value)
+
       // 장치 정보 업데이트
       if (data.device_info) {
         deviceInfo.value = Array.isArray(data.device_info) ? data.device_info : [data.device_info]
@@ -179,13 +184,19 @@ export function useModelManagement() {
 
       console.log('모델 로드 성공:', data)
 
-      // 모델 로드 성공 후 클래스 정보 자동 로드
-      await loadModelClasses()
-
-      // 클래스 개수 포함한 성공 메시지
-      const classCount = Object.keys(modelClasses.value).length
-      modelStatusMessage.value = `모델 로드 완료: ${cleanPath} (${classCount}개 클래스, YOLO ID 순서)`
-      console.log(`✅ 모델 로드 및 클래스 정보 로드 완료: ${classCount}개 클래스 (사이드바와 저장 시 순서 동일)`)
+      // 텍스트 프롬프트 지원 모델이 아닌 경우에만 클래스 정보 로드
+      if (!supportsTextPrompt.value) {
+        await loadModelClasses()
+        // 클래스 개수 포함한 성공 메시지
+        const classCount = Object.keys(modelClasses.value).length
+        modelStatusMessage.value = `모델 로드 완료: ${cleanPath} (${classCount}개 클래스, YOLO ID 순서)`
+        console.log(`✅ 모델 로드 및 클래스 정보 로드 완료: ${classCount}개 클래스 (사이드바와 저장 시 순서 동일)`)
+      } else {
+        // 텍스트 프롬프트 지원 모델
+        modelStatusMessage.value = `모델 로드 완료: ${cleanPath} (텍스트 프롬프트 지원)`
+        modelClasses.value = {}  // 클래스 정보 초기화
+        console.log(`✅ 텍스트 프롬프트 지원 모델 로드 완료`)
+      }
 
     } catch (error) {
       console.error('모델 로드 오류:', error)
@@ -279,6 +290,7 @@ export function useModelManagement() {
     deviceInfo,
     isLoadingModel,
     modelClasses,
+    supportsTextPrompt,
 
     // Methods
     refreshModels,

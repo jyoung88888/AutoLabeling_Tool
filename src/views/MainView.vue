@@ -13,6 +13,7 @@
       :model-status-success="modelStatusSuccess"
       :device-info="deviceInfo"
       :model-loaded="modelLoaded"
+      :supports-text-prompt="supportsTextPrompt"
       :uploaded-images="uploadedImages"
       :image-status-message="imageStatusMessage"
       :image-status-success="imageStatusSuccess"
@@ -36,8 +37,15 @@
       :project-path="projectPath"
       :model-classes="modelClasses"
       :confidence-threshold="confidenceThreshold"
+      :text-prompt="textPrompt"
+      :box-threshold="boxThreshold"
+      :text-threshold="textThreshold"
+      :prompt-applied="promptApplied"
       @update:sidebar-visible="sidebarVisible = $event"
       @update:confidence-threshold="confidenceThreshold = $event"
+      @update:text-prompt="textPrompt = $event"
+      @update:box-threshold="boxThreshold = $event"
+      @update:text-threshold="textThreshold = $event"
       @update:selected-model-type="selectedModelType = $event"
       @update:selected-model="selectedModel = $event"
       @update:selected-classes="selectedClasses = $event"
@@ -51,6 +59,7 @@
       @select-all-classes-changed="selectAllClassesChanged"
       @check-selected-classes="checkSelectedClasses"
       @apply-class-selection="applyClassSelection"
+      @apply-prompt="handleApplyPrompt"
       @dismiss-class-change-alert="dismissClassChangeAlert"
       @open-load-project="openLoadProjectDialog"
       @start-labeling="startLabeling"
@@ -474,6 +483,12 @@ export default {
     // 신뢰도 임계값 (0-1 범위)
     const confidenceThreshold = ref(0.5)
 
+    // Grounding DINO 텍스트 프롬프트 관련
+    const textPrompt = ref('')
+    const boxThreshold = ref(0.3)
+    const textThreshold = ref(0.25)
+    const promptApplied = ref(false)
+
     // Project state
     const projectPath = ref('')
     const projectList = ref([])
@@ -497,6 +512,7 @@ export default {
       modelStatusSuccess,
       deviceInfo,
       modelClasses,
+      supportsTextPrompt,
       refreshModels,
       loadModel,
       fetchModelDetails,
@@ -515,7 +531,7 @@ export default {
       classChangeMessage,
       selectedClassesInfo,
       classSelectionApplied,
-      canStartLabeling,
+      canStartLabeling: canStartLabelingYOLO,  // YOLO 전용 조건
       handleFileUpload,
       clearUploadedFiles,
       toggleAllClasses,
@@ -525,6 +541,19 @@ export default {
       dismissClassChangeAlert,
       updateAvailableClassesFromModel
     } = useImageManagement()
+
+    // 모델 타입에 따른 자동 라벨링 시작 가능 여부
+    const canStartLabeling = computed(() => {
+      const hasImages = uploadedImages.value.length > 0
+
+      if (supportsTextPrompt.value) {
+        // Grounding DINO: 이미지 + 프롬프트 적용
+        return hasImages && promptApplied.value
+      } else {
+        // YOLO: 이미지 + 클래스 선택 적용
+        return canStartLabelingYOLO.value
+      }
+    })
 
     const {
       loadSelectedProject,
@@ -635,6 +664,11 @@ export default {
           files: uploadedImages.value,
           selectedClasses: selectedClassList,
           confidenceThreshold: confidenceThreshold.value,
+          // Grounding DINO 텍스트 프롬프트 지원
+          supportsTextPrompt: supportsTextPrompt.value,
+          textPrompt: textPrompt.value,
+          boxThreshold: boxThreshold.value,
+          textThreshold: textThreshold.value,
           onProgress: (progress) => {
             progressPercent.value = progress.percent
             currentFile.value = progress.currentFile
@@ -1501,6 +1535,12 @@ export default {
       }
     }, { deep: true })
 
+    // 텍스트 프롬프트 적용 핸들러 (Grounding DINO용)
+    const handleApplyPrompt = () => {
+      console.log('💬 텍스트 프롬프트 적용:', textPrompt.value)
+      promptApplied.value = true
+    }
+
     return {
       // Refs
       darkTheme,
@@ -1557,6 +1597,7 @@ export default {
       modelStatusMessage,
       modelStatusSuccess,
       deviceInfo,
+      supportsTextPrompt,
       uploadedImages,
       imageStatusMessage,
       imageStatusSuccess,
@@ -1570,6 +1611,11 @@ export default {
       classSelectionApplied,
       canStartLabeling,
       lowConfidenceImages,
+      confidenceThreshold,
+      textPrompt,
+      boxThreshold,
+      textThreshold,
+      promptApplied,
 
       // Computed
       currentResult,
@@ -1580,6 +1626,7 @@ export default {
       loadModel,
       loadModelClasses,
       fetchModelDetails,
+      handleApplyPrompt,
       handleFileUpload,
       clearUploadedFiles,
       toggleAllClasses,

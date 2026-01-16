@@ -74,7 +74,8 @@
               <li>이미지 파일 ({{ results.length }}개)</li>
               <li>라벨링 결과 (.txt 파일)</li>
               <li>프로젝트 정보 파일 (.json)</li>
-              <li>클래스 정보 ({{ availableClasses.length }}개 클래스)</li>
+              <li v-if="availableClasses.length > 0">클래스 정보 ({{ availableClasses.length }}개 클래스)</li>
+              <li v-else>클래스 정보 (박스에서 자동 추출)</li>
             </ul>
           </v-alert>
 

@@ -89,9 +89,27 @@ export async function exportToYOLO(exportPath, results, classes, modelClasses = 
     const validResults = results.filter(result => result && result.filename);
     console.log(`유효한 결과: ${validResults.length}개`);
 
+    // Grounding DINO 등 동적 클래스 처리: classes가 비어있으면 boxes에서 추출
+    let effectiveClasses = classes;
+    if (!effectiveClasses || effectiveClasses.length === 0) {
+      console.log('⚠️ classes 배열이 비어있음 - boxes에서 클래스 자동 추출 시작');
+      const classSet = new Set();
+      validResults.forEach(result => {
+        if (result.boxes && Array.isArray(result.boxes)) {
+          result.boxes.forEach(box => {
+            if (box && box.class_name) {
+              classSet.add(box.class_name);
+            }
+          });
+        }
+      });
+      effectiveClasses = Array.from(classSet).sort();
+      console.log(`✅ boxes에서 ${effectiveClasses.length}개 클래스 자동 추출:`, effectiveClasses);
+    }
+
     // 클래스 매핑 생성
     const classMapping = {};
-    classes.forEach((className, index) => {
+    effectiveClasses.forEach((className, index) => {
       classMapping[className] = index;
     });
 
@@ -224,7 +242,7 @@ export async function exportToYOLO(exportPath, results, classes, modelClasses = 
 
     // modelClasses를 class_info 형태로 변환
     let classInfo = null;
-    if (modelClasses && typeof modelClasses === 'object') {
+    if (modelClasses && typeof modelClasses === 'object' && Object.keys(modelClasses).length > 0) {
       try {
         // {0: 'person', 1: 'helmet', ...} 형태를 [{"id": 0, "name": "person"}, ...] 형태로 변환
         classInfo = Object.entries(modelClasses)
@@ -239,6 +257,15 @@ export async function exportToYOLO(exportPath, results, classes, modelClasses = 
         console.warn('YOLO 내보내기 - modelClasses 변환 중 오류:', error);
         classInfo = null;
       }
+    }
+
+    // modelClasses가 없으면 effectiveClasses로부터 class_info 생성 (Grounding DINO 등)
+    if (!classInfo && effectiveClasses && effectiveClasses.length > 0) {
+      classInfo = effectiveClasses.map((name, index) => ({
+        id: index,
+        name: name
+      }));
+      console.log('YOLO 내보내기 - boxes에서 추출한 class_info:', classInfo);
     }
 
          // 요청 데이터 구성 (백엔드 API와 호환되도록)
@@ -409,7 +436,7 @@ export async function saveProjectLocal(projectData) {
     let classInfo = null;
 
     // modelClasses가 있으면 class_info 형태로 변환
-    if (projectData.modelClasses && typeof projectData.modelClasses === 'object') {
+    if (projectData.modelClasses && typeof projectData.modelClasses === 'object' && Object.keys(projectData.modelClasses).length > 0) {
       try {
         // {0: 'person', 1: 'helmet', ...} 형태를 [{"id": 0, "name": "person"}, ...] 형태로 변환
         classInfo = Object.entries(projectData.modelClasses)
@@ -425,8 +452,33 @@ export async function saveProjectLocal(projectData) {
         console.warn('modelClasses 변환 중 오류:', error);
         classInfo = null;
       }
-    } else {
-      console.log('modelClasses가 없거나 유효하지 않음 - class_info 없이 저장');
+    }
+
+    // modelClasses가 없으면 boxes에서 클래스 자동 추출 (Grounding DINO 등)
+    if (!classInfo) {
+      console.log('⚠️ modelClasses가 없음 - boxes에서 클래스 자동 추출 시작');
+      const classSet = new Set();
+      projectData.images.forEach(image => {
+        if (image.boxes && Array.isArray(image.boxes)) {
+          image.boxes.forEach(box => {
+            if (box && box.class_name) {
+              classSet.add(box.class_name);
+            }
+          });
+        }
+      });
+
+      if (classSet.size > 0) {
+        const extractedClasses = Array.from(classSet).sort();
+        classInfo = extractedClasses.map((name, index) => ({
+          id: index,
+          name: name
+        }));
+        console.log(`✅ boxes에서 ${classInfo.length}개 클래스 자동 추출:`, extractedClasses);
+        console.log('추출된 class_info:', classInfo);
+      } else {
+        console.log('boxes에서 클래스를 추출할 수 없음 - class_info 없이 저장');
+      }
     }
 
     // 백엔드 API와 호환되는 데이터 구성

@@ -18,8 +18,10 @@ from PIL import Image
 
 # 로컬 모듈 임포트
 from managers import model_utils, image_utils
+from managers.pipeline_manager import PipelineManager
+from managers.model_factory import ModelFactory
 from core.config import (
-    API_TAGS_METADATA, get_upload_dir, get_model_dir, 
+    API_TAGS_METADATA, get_upload_dir, get_model_dir,
     get_vue_dist_dir
 )
 
@@ -68,16 +70,22 @@ def ensure_directories():
 # 디렉토리 초기화
 ensure_directories()
 
+# 전역 파이프라인 매니저
+pipeline_manager = PipelineManager()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """서버 시작 시와 종료 시 실행되는 이벤트 핸들러"""
     # 서버 시작 시 실행되는 코드
     logger.info("서버 시작됨")
     logger.info("메모리 기반 이미지 시스템 사용 중")
-    
+    logger.info("🚀 멀티모델 파이프라인 시스템 초기화 완료")
+
     yield  # 서버 실행 중
-    
+
     # 서버 종료 시 실행되는 코드
+    logger.info("🗑️ 파이프라인 매니저 정리 중...")
+    pipeline_manager.clear_all_models()
     logger.info("서버 종료됨")
 
 app = FastAPI(
@@ -294,43 +302,107 @@ async def get_model_types():
 
 @app.post("/models/load/{model_path:path}", tags=["Models"])
 async def load_model(model_path: str):
-    """모델을 로드합니다."""
+    """모델을 로드합니다. (로컬 모델 및 Hugging Face 모델 지원)"""
     try:
+        logger.info(f"🔄 모델 로드 요청: {model_path}")
+
+        # Hugging Face 모델인지 확인 (grounding_dino/IDEA-Research/... 형태)
+        path_parts = model_path.split('/')
+
+        if len(path_parts) >= 2 and path_parts[0] == "grounding_dino":
+            # Grounding DINO 모델 (Hugging Face)
+            model_id = "/".join(path_parts[1:])  # "IDEA-Research/grounding-dino-tiny"
+            logger.info(f"📦 Hugging Face 모델 감지: {model_id}")
+
+            # 파이프라인 매니저를 통해 로드
+            result = pipeline_manager.add_model(
+                task_name="detection",
+                model_name="grounding_dino",
+                model_path=model_id
+            )
+
+            # 모델 로드 결과에 추가 정보 병합
+            if result:
+                result["model_type"] = "grounding_dino"
+                result["model_id"] = model_id
+                result["source"] = "huggingface"
+                return result
+            else:
+                return {
+                    "success": True,
+                    "message": f"Grounding DINO model loaded successfully",
+                    "model_type": "grounding_dino",
+                    "model_id": model_id,
+                    "source": "huggingface",
+                    "supports_text_prompt": True
+                }
+
+        # 기존 로컬 모델 파일 로드
         model_full_path = MODEL_DIR / model_path
         if not model_full_path.is_file():
             raise HTTPException(status_code=404, detail="Model file not found")
-        
+
         result = model_manager.load_model(model_full_path)
         return result
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"모델 로드 오류: {str(e)}")
+        logger.error(f"❌ 모델 로드 오류: {str(e)}")
+        import traceback
+        logger.error(f"상세 오류:\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/models/{model_type}", tags=["Models"])
 async def get_model_details(model_type: str):
     """모델 타입의 상세 정보를 반환합니다."""
     try:
+        # Hugging Face에서 자동 다운로드하는 모델들의 경우 가상 모델 목록 반환
+        huggingface_models = {
+            "grounding_dino": [
+                "IDEA-Research/grounding-dino-tiny",
+                "IDEA-Research/grounding-dino-base"
+            ],
+            "easyocr": [
+                "easyocr (auto-download)"
+            ]
+        }
+
+        # Hugging Face 모델인 경우
+        if model_type in huggingface_models:
+            logger.info(f"Hugging Face 모델 타입 '{model_type}' - 사용 가능한 모델: {huggingface_models[model_type]}")
+            return {
+                "details": huggingface_models[model_type],
+                "source": "huggingface",
+                "auto_download": True
+            }
+
+        # 로컬 모델 파일 검색
         model_path = MODEL_DIR / model_type
-        
+
         if not model_path.exists():
             logger.warning(f"모델 타입 디렉토리가 존재하지 않습니다: {model_path}")
             # 디렉토리가 없으면 생성
             model_path.mkdir(parents=True, exist_ok=True)
-            return {"details": []}
-        
+            return {"details": [], "source": "local", "auto_download": False}
+
         if not model_path.is_dir():
             raise HTTPException(status_code=404, detail=f"'{model_type}'는 유효한 모델 타입이 아닙니다.")
-        
+
         # 모델 파일들 찾기 (지원되는 확장자만)
         details = []
         for file_path in model_path.iterdir():
             if file_path.is_file() and file_path.suffix.lower() in ['.pt', '.pth', '.onnx', '.engine']:
                 details.append(file_path.name)
-        
+
         logger.info(f"모델 타입 '{model_type}'에서 {len(details)}개의 모델 파일 발견: {details}")
-        
-        return {"details": details}
-        
+
+        return {
+            "details": details,
+            "source": "local",
+            "auto_download": False
+        }
+
     except HTTPException:
         raise
     except Exception as e:
@@ -541,15 +613,21 @@ async def predict_image(filename: str, data: Dict[str, Any] = {}):
 async def process_labeling(
     file: UploadFile = File(...),
     classes: str = Form(...),
-    confidence_threshold: float = Form(0.5)
+    confidence_threshold: float = Form(0.5),
+    text_prompt: str = Form(None),
+    box_threshold: float = Form(0.3),
+    text_threshold: float = Form(0.25)
 ):
-    """자동 라벨링을 위한 이미지 처리 엔드포인트"""
+    """자동 라벨링을 위한 이미지 처리 엔드포인트 (YOLO 및 Grounding DINO 지원)"""
     import time
-    
+
     start_time = time.time()
-    
+
     try:
-        logger.info(f"자동 라벨링 요청 시작 - 파일: {file.filename}, 신뢰도: {confidence_threshold}")
+        if text_prompt:
+            logger.info(f"자동 라벨링 요청 시작 (Grounding DINO) - 파일: {file.filename}, 프롬프트: {text_prompt}, box_threshold: {box_threshold}, text_threshold: {text_threshold}")
+        else:
+            logger.info(f"자동 라벨링 요청 시작 (YOLO) - 파일: {file.filename}, 신뢰도: {confidence_threshold}")
         
         # 파일 검증
         if not file.content_type or not file.content_type.startswith('image/'):
@@ -618,11 +696,31 @@ async def process_labeling(
                 from io import BytesIO
                 image_stream = BytesIO(contents)
                 
-                logger.info(f"모델 예측 시작 - 선택된 클래스: {selected_classes}, 신뢰도: {confidence_threshold}")
-                
-                # 모델 매니저에 파일 스트림 전달 방식으로 예측 (자동 리사이즈 적용)
-                boxes = model_manager.predict_image(image_stream, selected_classes, confidence_threshold)
-                
+                # Grounding DINO 텍스트 프롬프트 지원
+                if text_prompt:
+                    logger.info(f"모델 예측 시작 (Grounding DINO) - 프롬프트: {text_prompt}, box_threshold: {box_threshold}, text_threshold: {text_threshold}")
+
+                    # PIL 이미지로 변환
+                    from PIL import Image
+                    image_stream.seek(0)
+                    pil_image = Image.open(image_stream)
+
+                    # pipeline_manager를 통해 Grounding DINO 추론
+                    result = pipeline_manager.run_single_task(
+                        task_name="detection",
+                        image=pil_image,
+                        text_prompt=text_prompt,
+                        box_threshold=box_threshold,
+                        text_threshold=text_threshold
+                    )
+
+                    # 결과에서 boxes 추출
+                    boxes = result.get("boxes", [])
+                else:
+                    logger.info(f"모델 예측 시작 (YOLO) - 선택된 클래스: {selected_classes}, 신뢰도: {confidence_threshold}")
+                    # YOLO용 기본 호출
+                    boxes = model_manager.predict_image(image_stream, selected_classes, confidence_threshold)
+
                 logger.info(f"모델 예측 완료 - 감지된 객체 수: {len(boxes)}")
             except Exception as e:
                 logger.error(f"모델 예측 실패: {str(e)}")
@@ -1293,6 +1391,169 @@ async def read_label_file(data: Dict[str, Any]):
     except Exception as e:
         logger.error(f"라벨 파일 읽기 API 오류: {e}")
         raise HTTPException(status_code=500, detail=f"라벨 파일 읽기 중 오류가 발생했습니다: {str(e)}")
+
+
+# ============================================================================
+# 멀티모델 파이프라인 API 엔드포인트
+# ============================================================================
+
+@app.get("/pipeline/info", tags=["Pipeline"])
+async def get_pipeline_info():
+    """현재 로드된 파이프라인 정보를 반환합니다."""
+    try:
+        info = pipeline_manager.get_pipeline_info()
+        return {
+            "success": True,
+            "pipeline_info": info
+        }
+    except Exception as e:
+        logger.error(f"파이프라인 정보 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/pipeline/load-model", tags=["Pipeline"])
+async def load_pipeline_model(
+    task_name: str = Form(...),
+    model_name: str = Form(...),
+    model_path: Optional[str] = Form(None),
+    config: Optional[str] = Form(None)
+):
+    """파이프라인에 모델을 로드합니다."""
+    try:
+        logger.info(f"모델 로드 요청: {task_name} -> {model_name}")
+
+        # 추가 설정 파싱
+        kwargs = {}
+        if config:
+            kwargs = json.loads(config)
+
+        # 모델 추가
+        pipeline_manager.add_model(
+            task_name=task_name,
+            model_name=model_name,
+            model_path=model_path,
+            **kwargs
+        )
+
+        return {
+            "success": True,
+            "message": f"{model_name} 모델이 {task_name}에 로드되었습니다",
+            "pipeline_info": pipeline_manager.get_pipeline_info()
+        }
+
+    except Exception as e:
+        logger.error(f"모델 로드 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/pipeline/process-multi", tags=["Pipeline"])
+async def process_multi_task(
+    file: UploadFile = File(...),
+    tasks: str = Form(...),
+    detection_config: Optional[str] = Form(None),
+    keypoint_config: Optional[str] = Form(None),
+    ocr_config: Optional[str] = Form(None)
+):
+    """
+    멀티태스크 파이프라인 실행
+    여러 모델을 동시에 실행합니다 (detection, keypoint, ocr 등)
+    """
+    import time
+    from io import BytesIO
+
+    start_time = time.time()
+
+    try:
+        logger.info(f"🚀 멀티태스크 파이프라인 요청 - 파일: {file.filename}")
+
+        # 파일 검증
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="이미지 파일만 허용됩니다")
+
+        # 태스크 파싱
+        tasks_list = json.loads(tasks)
+        logger.info(f"실행할 태스크: {tasks_list}")
+
+        # 각 태스크별 설정 파싱
+        configs = {}
+        if detection_config:
+            configs["detection"] = json.loads(detection_config)
+        if keypoint_config:
+            configs["keypoint"] = json.loads(keypoint_config)
+        if ocr_config:
+            configs["ocr"] = json.loads(ocr_config)
+
+        # 이미지 읽기
+        contents = await file.read()
+        image_bytes = BytesIO(contents)
+        pil_image = Image.open(image_bytes)
+
+        # 색상 모드 변환
+        if pil_image.mode in ('RGBA', 'LA'):
+            rgb_image = Image.new('RGB', pil_image.size, (255, 255, 255))
+            if pil_image.mode == 'RGBA':
+                rgb_image.paste(pil_image, mask=pil_image.split()[-1])
+            else:
+                rgb_image.paste(pil_image.convert('L'))
+            pil_image = rgb_image
+        elif pil_image.mode not in ('RGB', 'L'):
+            pil_image = pil_image.convert('RGB')
+
+        logger.info(f"이미지 로드 완료: {pil_image.size}, {pil_image.mode}")
+
+        # 파이프라인 실행
+        results = pipeline_manager.run_pipeline(
+            image=pil_image,
+            tasks=tasks_list,
+            **configs
+        )
+
+        # 이미지 인코딩 (결과 표시용)
+        import base64
+        import io
+        buffered = io.BytesIO()
+        pil_image.save(buffered, format="JPEG", quality=95)
+        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+
+        elapsed_time = time.time() - start_time
+        logger.info(f"✅ 파이프라인 실행 완료 - 소요시간: {elapsed_time:.2f}초")
+
+        return {
+            "success": True,
+            "results": results,
+            "image": f"data:image/jpeg;base64,{img_base64}",
+            "image_size": {
+                "width": pil_image.width,
+                "height": pil_image.height
+            },
+            "processing_time": round(elapsed_time, 3),
+            "pipeline_info": pipeline_manager.get_pipeline_info()
+        }
+
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON 파싱 오류: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"JSON 파싱 오류: {str(e)}")
+    except Exception as e:
+        logger.error(f"❌ 파이프라인 실행 실패: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/models/available", tags=["Pipeline"])
+async def get_available_models():
+    """사용 가능한 모델 목록을 반환합니다."""
+    try:
+        models = ModelFactory.get_available_models()
+        return {
+            "success": True,
+            "models": models,
+            "total_models": sum(len(v) for v in models.values())
+        }
+    except Exception as e:
+        logger.error(f"모델 목록 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # 여기서는 주요 엔드포인트들만 포함하고, 나머지는 별도 모듈로 분리하는 것을 권장
 # 실제 구현에서는 이 파일을 여러 모듈로 분리하여 유지보수성을 높여야 합니다.
