@@ -1,21 +1,71 @@
 <template>
   <div>
-    <v-list-subheader class="text-subtitle-1 font-weight-bold text-wrap pa-0" style="color: #e0e0e0;">
-      <div class="mb-2 mt-2 px-2">⚙️ 모델 설정</div>
+    <v-list-subheader
+      class="text-subtitle-1 font-weight-bold text-wrap pa-0"
+      style="color: #e0e0e0"
+    >
+      <div class="mb-2 mt-2 px-2">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-settings-icon lucide-settings"
+        >
+          <path
+            d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"
+          />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        모델 설정
+      </div>
     </v-list-subheader>
 
     <!-- 모델 업로드 컴포넌트 -->
     <v-list-item>
-      <ModelUploader ref="modelUploader" @upload-success="$emit('uploadSuccess', $event)" class="mb-3" />
+      <ModelUploader
+        ref="modelUploader"
+        @upload-success="$emit('uploadSuccess', $event)"
+        class="mb-3"
+      />
     </v-list-item>
 
     <v-list-item>
-      <v-btn block @click="$emit('refreshModels')" color="#4f9cf5" size="small" class="mb-2" prepend-icon="mdi-refresh" style="color: #fff;">
+      <v-btn
+        block
+        @click="$emit('refreshModels')"
+        color="#4f9cf5"
+        size="small"
+        class="mb-2"
+        style="color: #fff"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-refresh-ccw-icon lucide-refresh-ccw"
+        >
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+          <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+          <path d="M16 16h5v5" />
+        </svg>
         모델 목록 새로고침
       </v-btn>
     </v-list-item>
 
-    <v-list-item style="width: 100%; padding: 0 8px;">
+    <v-list-item style="width: 100%; padding: 0 8px">
       <v-select
         ref="modelSelect"
         :model-value="selectedModelType"
@@ -29,14 +79,14 @@
         item-title="text"
         item-value="value"
         return-object
-        style="width: 100%;"
+        style="width: 100%"
         class="mb-2 model-select dark-select"
         prepend-inner-icon="mdi-database"
         base-color="#e0e0e0"
       ></v-select>
     </v-list-item>
 
-    <v-list-item v-if="modelDetails.length > 0" style="width: 100%; padding: 0 8px;">
+    <v-list-item v-if="modelDetails.length > 0" style="width: 100%; padding: 0 8px">
       <v-select
         ref="detailModelSelect"
         :model-value="selectedModel"
@@ -50,7 +100,7 @@
         item-title="text"
         item-value="value"
         return-object
-        style="width: 100%;"
+        style="width: 100%"
         class="mb-2 model-select dark-select"
         prepend-inner-icon="mdi-cube"
         base-color="#e0e0e0"
@@ -58,13 +108,11 @@
     </v-list-item>
 
     <!-- 모델 상세 정보가 없을 때 알림 -->
-    <v-list-item v-else-if="selectedModelType && modelDetails.length === 0" style="width: 100%; padding: 0 8px;">
-      <v-alert
-        density="compact"
-        type="warning"
-        variant="tonal"
-        class="mb-2"
-      >
+    <v-list-item
+      v-else-if="selectedModelType && modelDetails.length === 0"
+      style="width: 100%; padding: 0 8px"
+    >
+      <v-alert density="compact" type="warning" variant="tonal" class="mb-2">
         선택된 모델 타입에 사용 가능한 모델이 없습니다.
       </v-alert>
     </v-list-item>
@@ -78,7 +126,7 @@
         :disabled="!selectedModel"
         class="mb-2"
         prepend-icon="mdi-upload"
-        style="color: #fff;"
+        style="color: #fff"
       >
         모델 로드
       </v-btn>
@@ -104,7 +152,12 @@
         <v-divider color="#333" class="mb-2"></v-divider>
         <div class="device-info-list">
           <div class="device-info-item" v-for="(info, index) in deviceInfo" :key="index">
-            <v-icon :icon="getDeviceInfoIcon(index)" size="x-small" color="#8f9bb3" class="mr-2"></v-icon>
+            <v-icon
+              :icon="getDeviceInfoIcon(index)"
+              size="x-small"
+              color="#8f9bb3"
+              class="mr-2"
+            ></v-icon>
             <span class="device-info-text">{{ info }}</span>
           </div>
         </div>
@@ -119,37 +172,37 @@ import ModelUploader from '../models/ModelUploader.vue'
 export default {
   name: 'ModelSettingsSection',
   components: {
-    ModelUploader
+    ModelUploader,
   },
   props: {
     models: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     selectedModelType: {
       type: Object,
-      default: null
+      default: null,
     },
     modelDetails: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     selectedModel: {
       type: Object,
-      default: null
+      default: null,
     },
     modelStatusMessage: {
       type: String,
-      default: ''
+      default: '',
     },
     modelStatusSuccess: {
       type: Boolean,
-      default: false
+      default: false,
     },
     deviceInfo: {
       type: Array,
-      default: () => ['알 수 없음']
-    }
+      default: () => ['알 수 없음'],
+    },
   },
   emits: [
     'update:selectedModelType',
@@ -157,19 +210,19 @@ export default {
     'refreshModels',
     'loadModel',
     'fetchModelDetails',
-    'uploadSuccess'
+    'uploadSuccess',
   ],
   methods: {
     getDeviceInfoIcon(index) {
       // 디바이스 정보 아이콘 매핑
-      const icons = ['mdi-memory', 'mdi-chip', 'mdi-harddisk', 'mdi-speedometer'];
-      return icons[index] || 'mdi-information';
+      const icons = ['mdi-memory', 'mdi-chip', 'mdi-harddisk', 'mdi-speedometer']
+      return icons[index] || 'mdi-information'
     },
     handleModelTypeUpdate(value) {
-      this.$emit('update:selectedModelType', value);
-      this.$emit('fetchModelDetails', value);
-    }
-  }
+      this.$emit('update:selectedModelType', value)
+      this.$emit('fetchModelDetails', value)
+    },
+  },
 }
 </script>
 

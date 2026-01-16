@@ -6,6 +6,7 @@ import { createVuetify } from 'vuetify';
 import 'vuetify/styles';
 import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
+import { VFileUpload } from 'vuetify/labs/VFileUpload';
 
 // Vue Konva
 import VueKonva from 'vue-konva';
@@ -19,7 +20,10 @@ import './assets/custom-variables.css';
 // Vue 애플리케이션 초기화
 
 const vuetify = createVuetify({
-  components,
+  components: {
+    ...components,
+    VFileUpload,
+  },
   directives,
   icons: {
     defaultSet: 'mdi',
