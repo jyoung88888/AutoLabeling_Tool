@@ -513,7 +513,7 @@ class DevServerManager:
         
         # npm 설치 확인
         try:
-            subprocess.run(["npm", "--version"], capture_output=True, check=True)
+            subprocess.run("npm --version", capture_output=True, check=True, shell=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
             logger.error("npm이 설치되지 않았거나 PATH에 없습니다.")
             return False
@@ -538,11 +538,12 @@ class DevServerManager:
         logger.info("npm 의존성을 설치하는 중...")
         try:
             result = subprocess.run(
-                ["npm", "install"],
+                "npm install",
                 cwd=str(self.base_dir),
                 capture_output=True,
                 text=True,
-                timeout=300  # 5분 타임아웃
+                timeout=300,  # 5분 타임아웃
+                shell=True
             )
             
             if result.returncode == 0:
@@ -655,11 +656,12 @@ class DevServerManager:
         
         try:
             result = subprocess.run(
-                ["npm", "run", "build"],
+                "npm run build",
                 cwd=str(self.base_dir),
                 capture_output=True,
                 text=True,
-                timeout=300  # 5분 타임아웃
+                timeout=300,  # 5분 타임아웃
+                shell=True
             )
             
             if result.returncode == 0:
@@ -672,7 +674,7 @@ class DevServerManager:
                     logger.info(f"📦 생성된 파일: {len(build_files)}개")
                 
                 # 빌드 출력이 있으면 표시
-                if result.stdout.strip():
+                if result.stdout and result.stdout.strip():
                     print(colorize_log("빌드 결과:", is_backend=False))
                     for line in result.stdout.strip().split('\n'):
                         if line.strip():
@@ -777,12 +779,13 @@ class DevServerManager:
         
         try:
             self.frontend_process = subprocess.Popen(
-                ["npm", "run", "dev"],
+                "npm run dev",
                 cwd=str(self.base_dir),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
-                bufsize=1
+                bufsize=1,
+                shell=True
             )
             
             # 프론트엔드 로그 출력을 위한 스레드
