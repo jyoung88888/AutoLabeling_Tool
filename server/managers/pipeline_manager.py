@@ -176,6 +176,45 @@ class PipelineManager:
 
         return result
 
+    def run_batch_task(
+        self,
+        task_name: str,
+        images: List,
+        **kwargs
+    ) -> List[Dict[str, Any]]:
+        """
+        배치 작업 실행 (여러 이미지 동시 처리)
+
+        Args:
+            task_name (str): 실행할 작업 이름
+            images (List): 입력 이미지 리스트
+            **kwargs: 작업별 설정 (batch_size 포함)
+
+        Returns:
+            List[Dict[str, Any]]: 각 이미지별 작업 결과 리스트
+        """
+        if task_name not in self.models:
+            raise ValueError(f"{task_name} 모델이 로드되지 않았습니다")
+
+        logger.info(f"🔄 배치 작업 실행: {task_name} (이미지 {len(images)}개)")
+        model = self.models[task_name]
+
+        # 모델이 배치 추론을 지원하는지 확인
+        if hasattr(model, 'predict_batch'):
+            # 배치 추론 메서드 사용
+            results = model.predict_batch(images, **kwargs)
+        else:
+            # 배치 추론을 지원하지 않으면 순차 처리
+            logger.warning(f"⚠️ {task_name} 모델이 배치 추론을 지원하지 않습니다. 순차 처리로 대체합니다.")
+            results = []
+            for img in images:
+                result = model.predict(img, **kwargs)
+                results.append(result)
+
+        logger.info(f"✅ 배치 작업 완료: {task_name} (처리된 이미지: {len(results)}개)")
+
+        return results
+
     def get_pipeline_info(self) -> Dict[str, Any]:
         """
         파이프라인 정보 반환

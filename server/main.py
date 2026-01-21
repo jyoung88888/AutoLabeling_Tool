@@ -700,8 +700,7 @@ async def process_labeling(
                 if text_prompt:
                     logger.info(f"모델 예측 시작 (Grounding DINO) - 프롬프트: {text_prompt}, box_threshold: {box_threshold}, text_threshold: {text_threshold}")
 
-                    # PIL 이미지로 변환
-                    from PIL import Image
+                    # PIL 이미지로 변환 (Image는 파일 상단에서 이미 import됨)
                     image_stream.seek(0)
                     pil_image = Image.open(image_stream)
 
@@ -788,6 +787,124 @@ async def process_labeling(
     except Exception as e:
         logger.error(f"자동 라벨링 처리 중 예상치 못한 오류: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"자동 라벨링 처리 중 오류가 발생했습니다: {str(e)}")
+
+@app.post("/labeling/batch-process", tags=["Labeling"])
+async def batch_process_labeling(data: Dict[str, Any]):
+    """
+    배치 자동 라벨링 엔드포인트 (여러 이미지 동시 처리)
+
+    Args:
+        data: {
+            "filenames": List[str],  # 업로드된 이미지 파일명 리스트
+            "text_prompt": str,      # Grounding DINO 텍스트 프롬프트
+            "box_threshold": float,  # 박스 임계값 (기본값: 0.3)
+            "text_threshold": float, # 텍스트 임계값 (기본값: 0.25)
+            "batch_size": int        # 배치 크기 (기본값: 4)
+        }
+
+    Returns:
+        List[Dict]: 각 이미지별 탐지 결과
+    """
+    import time
+    start_time = time.time()
+
+    try:
+        # 파라미터 추출
+        filenames = data.get("filenames", [])
+        text_prompt = data.get("text_prompt")
+        box_threshold = data.get("box_threshold", 0.3)
+        text_threshold = data.get("text_threshold", 0.25)
+        batch_size = data.get("batch_size", 4)
+
+        # 유효성 검증
+        if not filenames or not isinstance(filenames, list):
+            raise HTTPException(status_code=400, detail="filenames 리스트가 필요합니다")
+
+        if not text_prompt:
+            raise HTTPException(status_code=400, detail="text_prompt가 필요합니다")
+
+        logger.info(f"🔍 배치 자동 라벨링 시작")
+        logger.info(f"  - 이미지 수: {len(filenames)}개")
+        logger.info(f"  - 배치 크기: {batch_size}")
+        logger.info(f"  - 프롬프트: {text_prompt}")
+        logger.info(f"  - Box threshold: {box_threshold}")
+        logger.info(f"  - Text threshold: {text_threshold}")
+
+        # 이미지 로드
+        images = []
+        image_infos = []
+
+        for filename in filenames:
+            try:
+                # 이미지 경로 찾기
+                image_path = image_manager.find_image_path(filename)
+                if not image_path:
+                    logger.warning(f"이미지를 찾을 수 없음: {filename}")
+                    continue
+
+                # PIL 이미지 로드
+                pil_image = Image.open(image_path)
+                if pil_image.mode != 'RGB':
+                    pil_image = pil_image.convert('RGB')
+
+                images.append(pil_image)
+                image_infos.append({
+                    "filename": filename,
+                    "size": pil_image.size  # (width, height)
+                })
+
+            except Exception as e:
+                logger.error(f"이미지 로드 실패 ({filename}): {str(e)}")
+                continue
+
+        if len(images) == 0:
+            raise HTTPException(status_code=404, detail="유효한 이미지를 찾을 수 없습니다")
+
+        logger.info(f"📥 {len(images)}개 이미지 로드 완료")
+
+        # 배치 추론 수행
+        try:
+            results = pipeline_manager.run_batch_task(
+                task_name="detection",
+                images=images,
+                text_prompt=text_prompt,
+                box_threshold=box_threshold,
+                text_threshold=text_threshold,
+                batch_size=batch_size
+            )
+        except Exception as e:
+            logger.error(f"배치 추론 실패: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"배치 추론 실패: {str(e)}")
+
+        # 결과 정리
+        processed_results = []
+        for idx, result in enumerate(results):
+            info = image_infos[idx]
+            processed_results.append({
+                "success": True,
+                "filename": info["filename"],
+                "boxes": result.get("boxes", []),
+                "num_detections": result.get("num_detections", 0),
+                "width": info["size"][0],
+                "height": info["size"][1]
+            })
+
+        processing_time = time.time() - start_time
+
+        logger.info(f"✅ 배치 자동 라벨링 완료 - 처리 시간: {processing_time:.3f}초, 이미지: {len(processed_results)}개")
+
+        return {
+            "success": True,
+            "results": processed_results,
+            "total_images": len(processed_results),
+            "processing_time": round(processing_time, 3)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"배치 자동 라벨링 중 오류: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"배치 자동 라벨링 실패: {str(e)}")
 
 @app.get("/files/{filename:path}", tags=["Files"])
 async def get_file(filename: str):

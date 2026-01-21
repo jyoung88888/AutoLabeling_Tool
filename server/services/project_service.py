@@ -22,38 +22,38 @@ class ProjectService:
     def save_project(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         프로젝트를 저장합니다.
-        
+
         Args:
             data: 프로젝트 저장 데이터
-            
+
         Returns:
             저장 결과 정보
         """
         try:
             # 데이터 검증
             self._validate_project_data(data)
-            
+
             # 모델 상태 사전 검증
             self._validate_model_state()
-            
+
             project_name = data["projectName"]
             images = data["images"]
             base_path = data.get("basePath", "")
-            
+
             # 프로젝트 경로 설정
             project_dir = self._create_project_directory(project_name, base_path)
-            
-            # 이미지 및 라벨 저장
-            save_results = self._save_images_and_labels(project_dir, images)
-            
+
+            # 이미지 및 라벨 저장 (data 전달하여 class_info 사용 가능하게 함)
+            save_results = self._save_images_and_labels(project_dir, images, data)
+
             # 프로젝트 정보 파일 저장
             self._save_project_info(project_dir, project_name, save_results, data)
-            
+
             # 메모리 정리
             self._cleanup_memory_images()
-            
+
             logger.info(f"프로젝트 저장 완료: {project_dir}")
-            
+
             return {
                 "success": True,
                 "message": "프로젝트가 성공적으로 저장되었습니다.",
@@ -62,7 +62,7 @@ class ProjectService:
                 "savedLabels": save_results["saved_labels"],
                 "totalImages": len(images)
             }
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -161,48 +161,47 @@ class ProjectService:
             raise HTTPException(status_code=400, detail="유효하지 않은 이미지 데이터입니다.")
     
     def _validate_model_state(self) -> None:
-        """모델 상태 검증"""
+        """모델 상태 검증 - Grounding DINO 지원"""
         logger.info("=== 모델 상태 사전 검증 ===")
-        
-        if not self.model_manager:
-            logger.error("❌ 모델 매니저가 없습니다!")
-            raise HTTPException(status_code=400, detail="모델 매니저가 초기화되지 않았습니다.")
-        
-        if not hasattr(self.model_manager, 'model') or self.model_manager.model is None:
-            logger.error("❌ YOLO 모델이 로드되지 않았습니다!")
-            raise HTTPException(status_code=400, detail="YOLO 모델을 먼저 로드해주세요. 프로젝트 저장을 위해서는 모델이 필요합니다.")
-        
-        # 모델 클래스 정보 미리 확인
+
+        # model_manager가 없거나 YOLO 모델이 없는 경우 (Grounding DINO 등)
+        if not self.model_manager or not hasattr(self.model_manager, 'model') or self.model_manager.model is None:
+            logger.warning("⚠️ YOLO 모델 매니저가 없음 - Grounding DINO 등 다른 모델 사용 중일 수 있음")
+            logger.info("📡 프론트엔드에서 전달된 class_info를 사용할 예정")
+            # 프론트엔드에서 class_info를 전달받을 예정이므로 검증 통과
+            return
+
+        # YOLO 모델이 있는 경우 클래스 정보 확인
         try:
-            logger.info("🔍 모델 클래스 정보 사전 검증 시작...")
+            logger.info("🔍 YOLO 모델 클래스 정보 사전 검증 시작...")
             model_classes_response = self.model_manager.get_model_classes()
             logger.info(f"📋 모델 클래스 응답: {model_classes_response}")
-            
+
             if not model_classes_response:
                 logger.error("❌ 모델 클래스 응답이 None입니다!")
                 raise HTTPException(status_code=400, detail="모델 클래스 정보를 가져올 수 없습니다. 모델을 다시 로드해주세요.")
-                
+
             if "classes" not in model_classes_response:
                 logger.error(f"❌ 모델 클래스 응답에 'classes' 키가 없습니다: {model_classes_response}")
                 raise HTTPException(status_code=400, detail="모델 클래스 정보를 가져올 수 없습니다. 모델을 다시 로드해주세요.")
-            
+
             model_classes = model_classes_response.get("classes", {})
             logger.info(f"🎯 추출된 모델 클래스 (타입: {type(model_classes)}, 길이: {len(model_classes) if hasattr(model_classes, '__len__') else 'N/A'})")
-            
+
             if not model_classes:
                 logger.error("❌ 모델 클래스 정보가 비어있습니다!")
                 raise HTTPException(status_code=400, detail="모델에 클래스 정보가 없습니다. 올바른 YOLO 모델을 로드해주세요.")
-            
+
             if isinstance(model_classes, dict) and len(model_classes) == 0:
                 logger.error("❌ 모델 클래스 딕셔너리가 비어있습니다!")
                 raise HTTPException(status_code=400, detail="모델에 클래스 정보가 없습니다. 올바른 YOLO 모델을 로드해주세요.")
             elif isinstance(model_classes, list) and len(model_classes) == 0:
                 logger.error("❌ 모델 클래스 리스트가 비어있습니다!")
                 raise HTTPException(status_code=400, detail="모델에 클래스 정보가 없습니다. 올바른 YOLO 모델을 로드해주세요.")
-            
+
             class_count = len(model_classes)
-            logger.info(f"✅ 모델 상태 검증 완료: {class_count}개 클래스 확인")
-            
+            logger.info(f"✅ YOLO 모델 상태 검증 완료: {class_count}개 클래스 확인")
+
             # 처음 10개 클래스만 로깅
             if isinstance(model_classes, dict):
                 sorted_items = sorted(model_classes.items(), key=lambda x: int(x[0]))
@@ -215,7 +214,7 @@ class ProjectService:
                 logger.info(f"📋 모델 클래스 샘플 (리스트): {sample_classes}")
                 if len(model_classes) > 10:
                     logger.info(f"   ... 및 {len(model_classes) - 10}개 더")
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -240,34 +239,43 @@ class ProjectService:
         
         return project_dir
     
-    def _save_images_and_labels(self, project_dir: Path, images: List[Dict]) -> Dict[str, int]:
+    def _save_images_and_labels(self, project_dir: Path, images: List[Dict], data: Dict[str, Any]) -> Dict[str, int]:
         """이미지와 라벨 파일들을 저장"""
         images_dir = project_dir / "images"
         labels_dir = project_dir / "labels"
-        
-        # 현재 로드된 모델의 클래스 정보를 라벨 저장에 사용
-        classes_with_ids = self._get_current_model_classes()
-        model_classes = [cls["name"] for cls in classes_with_ids]
-        
+
+        # 프론트엔드에서 전달받은 class_info 우선 사용 (Grounding DINO 등)
+        received_class_info = data.get("class_info")
+
+        if received_class_info and isinstance(received_class_info, list) and len(received_class_info) > 0:
+            logger.info("✅ 프론트엔드에서 전달받은 class_info 사용 (Grounding DINO 등)")
+            classes_with_ids = sorted(received_class_info, key=lambda x: x.get("id", 0))
+            model_classes = [cls["name"] for cls in classes_with_ids]
+        else:
+            # YOLO 모델에서 클래스 정보 가져오기
+            logger.info("📡 YOLO 모델에서 클래스 정보 가져오기")
+            classes_with_ids = self._get_current_model_classes()
+            model_classes = [cls["name"] for cls in classes_with_ids]
+
         logger.info(f"라벨 저장에 사용할 클래스 순서: {model_classes}")
-        
+
         saved_images = 0
         saved_labels = 0
-        
+
         for image in images:
             try:
                 # 이미지 파일 저장
                 if self._save_single_image(image, images_dir):
                     saved_images += 1
-                    
+
                     # 라벨 파일 저장 (모델 클래스 순서 사용)
                     if self._save_single_label(image, labels_dir, model_classes):
                         saved_labels += 1
-                        
+
             except Exception as e:
                 logger.warning(f"이미지 {image.get('filename', 'unknown')} 저장 중 오류: {str(e)}")
                 continue
-        
+
         return {"saved_images": saved_images, "saved_labels": saved_labels}
     
     def _save_single_image(self, image: Dict, images_dir: Path) -> bool:

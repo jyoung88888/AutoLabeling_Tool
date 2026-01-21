@@ -425,6 +425,7 @@ export default {
     const containerWidth = ref(800)
     const containerHeight = ref(600)
     const displayScale = ref(1)
+    const stageScale = ref(1) // 실제 stage 확대/축소 scale (마우스 휠 등)
     const stageX = ref(0)
     const stageY = ref(0)
     const imageWidth = ref(0)
@@ -605,6 +606,7 @@ export default {
 
         // 최대 스케일 제한 (너무 크게 확대되지 않도록)
         displayScale.value = Math.min(fitScale, 1.0)
+        stageScale.value = displayScale.value // 초기 stage scale 설정
 
         // 실제 표시될 이미지 크기 계산
         const scaledImageWidth = imageWidth.value * displayScale.value
@@ -616,6 +618,7 @@ export default {
       } else {
         // 이미지가 없는 경우 기본값
         displayScale.value = 1
+        stageScale.value = 1 // 초기 stage scale 설정
         stageX.value = 0
         stageY.value = 0
       }
@@ -1157,7 +1160,8 @@ export default {
       resolutionFactor = resolutionFactor * 1.2
 
       // 표시 스케일은 역방향으로 적용 (확대하면 UI 요소는 상대적으로 작게)
-      const displayFactor = 1 / displayScale.value
+      // Stage의 실제 scale을 사용 (마우스 휠 확대/축소 반영)
+      const displayFactor = 1 / stageScale.value
 
       // 최종 스케일 팩터: 해상도가 클수록 큰 값, 표시 스케일이 클수록 작은 값
       return Math.max(0.25, Math.min(3.5, resolutionFactor * displayFactor))
@@ -1200,11 +1204,13 @@ export default {
       }
 
       // 표시 스케일도 고려하여 최종 크기 계산
-      const displayFactor = 1 / displayScale.value
-      const finalScale = handleScale * Math.max(0.6, Math.min(2.5, displayFactor))
+      // 이미지 확대 시 핸들을 더 작게 (0.15배까지 축소)
+      // Stage의 실제 scale을 사용 (마우스 휠 확대/축소 반영)
+      const displayFactor = 1 / stageScale.value
+      const finalScale = handleScale * Math.max(0.15, Math.min(2.5, displayFactor))
 
       const scaledRadius = baseRadius * finalScale
-      return Math.max(4.5, Math.min(30, scaledRadius))
+      return Math.max(3.0, Math.min(30, scaledRadius))
     }
 
     // 작은 편집점 크기 계산 (미세한 객체 라벨링을 위해 더 작게)
@@ -1242,11 +1248,13 @@ export default {
       }
 
       // 표시 스케일도 고려하여 최종 크기 계산
-      const displayFactor = 1 / displayScale.value
-      const finalScale = smallHandleScale * Math.max(0.4, Math.min(2.0, displayFactor))
+      // 이미지 확대 시 작은 핸들을 더 작게 (0.1배까지 축소)
+      // Stage의 실제 scale을 사용 (마우스 휠 확대/축소 반영)
+      const displayFactor = 1 / stageScale.value
+      const finalScale = smallHandleScale * Math.max(0.1, Math.min(2.0, displayFactor))
 
       const smallRadius = 1.5 * finalScale
-      return Math.max(2.25, Math.min(12, smallRadius))
+      return Math.max(1.5, Math.min(12, smallRadius))
     }
 
     // 라벨 텍스트 크기 계산 (이미지 해상도와 표시 스케일 모두 고려)
@@ -1284,11 +1292,13 @@ export default {
       }
 
       // 표시 스케일도 고려하여 최종 크기 계산
-      const displayFactor = 1 / displayScale.value
-      const finalScale = fontScale * Math.max(0.6, Math.min(1.8, displayFactor))
+      // 이미지 확대 시 라벨 폰트도 작게 (0.3배까지 축소, 가독성 유지)
+      // Stage의 실제 scale을 사용 (마우스 휠 확대/축소 반영)
+      const displayFactor = 1 / stageScale.value
+      const finalScale = fontScale * Math.max(0.3, Math.min(1.8, displayFactor))
 
       const scaledSize = baseFontSize * finalScale
-      return Math.max(8, Math.min(32, scaledSize))
+      return Math.max(6, Math.min(32, scaledSize))
     }
 
     // 라벨 배경 크기 계산 (텍스트 길이와 폰트 크기에 따라)
@@ -1863,6 +1873,7 @@ export default {
       const clampedScale = Math.max(0.05, Math.min(20, newScale))
 
       stageRef.scale({ x: clampedScale, y: clampedScale })
+      stageScale.value = clampedScale // reactive 변수 업데이트
 
       const newPos = {
         x: pointer.x - mousePointTo.x * clampedScale,
@@ -1892,6 +1903,7 @@ export default {
       calculateDisplaySize()
       stageRef.scale({ x: displayScale.value, y: displayScale.value })
       stageRef.position({ x: stageX.value, y: stageY.value })
+      stageScale.value = displayScale.value // reactive 변수 업데이트
 
       // 줌 인덱스를 기본값(100%)으로 재설정
       currentZoomIndex.value = 4
@@ -1919,6 +1931,7 @@ export default {
 
       stageRef.scale({ x: newScale, y: newScale })
       stageRef.position({ x: newX, y: newY })
+      stageScale.value = newScale // reactive 변수 업데이트
 
       // 확대 레벨 피드백
       const percentage = Math.round(newScale * 100)
@@ -1953,6 +1966,7 @@ export default {
 
       stageRef.scale({ x: newScale, y: newScale })
       stageRef.position({ x: newX, y: newY })
+      stageScale.value = newScale // reactive 변수 업데이트
 
       // 축소 레벨 피드백
       const percentage = Math.round(newScale * 100)

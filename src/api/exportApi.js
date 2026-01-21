@@ -93,18 +93,40 @@ export async function exportToYOLO(exportPath, results, classes, modelClasses = 
     let effectiveClasses = classes;
     if (!effectiveClasses || effectiveClasses.length === 0) {
       console.log('⚠️ classes 배열이 비어있음 - boxes에서 클래스 자동 추출 시작');
-      const classSet = new Set();
+
+      // class_id가 있는 경우와 없는 경우를 구분하여 처리
+      const classMap = new Map(); // class_id -> class_name 매핑
+      let hasClassId = false;
+
       validResults.forEach(result => {
         if (result.boxes && Array.isArray(result.boxes)) {
           result.boxes.forEach(box => {
             if (box && box.class_name) {
-              classSet.add(box.class_name);
+              if (box.class_id !== undefined && box.class_id !== null && box.class_id >= 0) {
+                // class_id가 있는 경우 (Grounding DINO의 프롬프트 순서)
+                classMap.set(box.class_id, box.class_name);
+                hasClassId = true;
+              } else {
+                // class_id가 없는 경우 (하위 호환성)
+                if (!classMap.has(box.class_name)) {
+                  classMap.set(box.class_name, box.class_name);
+                }
+              }
             }
           });
         }
       });
-      effectiveClasses = Array.from(classSet).sort();
-      console.log(`✅ boxes에서 ${effectiveClasses.length}개 클래스 자동 추출:`, effectiveClasses);
+
+      if (hasClassId) {
+        // class_id 순서대로 정렬 (프롬프트 입력 순서 유지)
+        const sortedEntries = Array.from(classMap.entries()).sort((a, b) => a[0] - b[0]);
+        effectiveClasses = sortedEntries.map(entry => entry[1]);
+        console.log(`✅ boxes에서 ${effectiveClasses.length}개 클래스 자동 추출 (프롬프트 순서 유지):`, effectiveClasses);
+      } else {
+        // class_id가 없는 경우 알파벳 순으로 정렬
+        effectiveClasses = Array.from(classMap.values()).sort();
+        console.log(`✅ boxes에서 ${effectiveClasses.length}개 클래스 자동 추출 (알파벳 순):`, effectiveClasses);
+      }
     }
 
     // 클래스 매핑 생성
@@ -457,24 +479,47 @@ export async function saveProjectLocal(projectData) {
     // modelClasses가 없으면 boxes에서 클래스 자동 추출 (Grounding DINO 등)
     if (!classInfo) {
       console.log('⚠️ modelClasses가 없음 - boxes에서 클래스 자동 추출 시작');
-      const classSet = new Set();
+
+      // class_id가 있는 경우와 없는 경우를 구분하여 처리
+      const classMap = new Map(); // class_id -> class_name 매핑
+      let hasClassId = false;
+
       projectData.images.forEach(image => {
         if (image.boxes && Array.isArray(image.boxes)) {
           image.boxes.forEach(box => {
             if (box && box.class_name) {
-              classSet.add(box.class_name);
+              if (box.class_id !== undefined && box.class_id !== null && box.class_id >= 0) {
+                // class_id가 있는 경우 (Grounding DINO의 프롬프트 순서)
+                classMap.set(box.class_id, box.class_name);
+                hasClassId = true;
+              } else {
+                // class_id가 없는 경우 (하위 호환성)
+                if (!classMap.has(box.class_name)) {
+                  classMap.set(box.class_name, box.class_name);
+                }
+              }
             }
           });
         }
       });
 
-      if (classSet.size > 0) {
-        const extractedClasses = Array.from(classSet).sort();
+      if (classMap.size > 0) {
+        let extractedClasses;
+        if (hasClassId) {
+          // class_id 순서대로 정렬 (프롬프트 입력 순서 유지)
+          const sortedEntries = Array.from(classMap.entries()).sort((a, b) => a[0] - b[0]);
+          extractedClasses = sortedEntries.map(entry => entry[1]);
+          console.log(`✅ boxes에서 ${extractedClasses.length}개 클래스 자동 추출 (프롬프트 순서 유지):`, extractedClasses);
+        } else {
+          // class_id가 없는 경우 알파벳 순으로 정렬
+          extractedClasses = Array.from(classMap.values()).sort();
+          console.log(`✅ boxes에서 ${extractedClasses.length}개 클래스 자동 추출 (알파벳 순):`, extractedClasses);
+        }
+
         classInfo = extractedClasses.map((name, index) => ({
           id: index,
           name: name
         }));
-        console.log(`✅ boxes에서 ${classInfo.length}개 클래스 자동 추출:`, extractedClasses);
         console.log('추출된 class_info:', classInfo);
       } else {
         console.log('boxes에서 클래스를 추출할 수 없음 - class_info 없이 저장');
