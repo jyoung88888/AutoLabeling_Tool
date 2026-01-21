@@ -39,6 +39,8 @@ class GroundingDINOManager(BaseModel):
                 (기본값: "IDEA-Research/grounding-dino-tiny")
             **kwargs:
                 - model_id (str): 모델 ID (model_path 대신 사용 가능)
+                - enable_compile (bool): torch.compile() 사용 여부 (기본값: False)
+                  → Windows에서는 Triton 미지원으로 기본 비활성화
         """
         try:
             # Transformers 라이브러리 임포트
@@ -72,8 +74,10 @@ class GroundingDINOManager(BaseModel):
             self.model.to(device)
 
             # torch.compile()로 모델 최적화 (PyTorch 2.0+)
-            # Windows 한글 경로 문제로 인해 GPU에서만 활성화
-            if device == "cuda":
+            # Windows 환경에서는 Triton 미지원으로 기본 비활성화
+            enable_compile = kwargs.get('enable_compile', False)  # 기본값: False (안정성 우선)
+
+            if device == "cuda" and enable_compile:
                 try:
                     logger.info(f"🔧 torch.compile()로 모델 최적화 중...")
 
@@ -88,9 +92,13 @@ class GroundingDINOManager(BaseModel):
 
                 except Exception as compile_error:
                     logger.warning(f"⚠️ torch.compile() 적용 실패: {str(compile_error)}")
-                    logger.info(f"   기본 모델로 실행합니다 (성능 영향 없음)")
+                    logger.info(f"   기본 모델로 실행합니다")
             else:
-                logger.info(f"ℹ️ CPU 모드에서는 torch.compile() 건너뜀")
+                if device == "cpu":
+                    logger.info(f"ℹ️ CPU 모드에서는 torch.compile() 건너뜀")
+                elif not enable_compile:
+                    logger.info(f"ℹ️ torch.compile() 비활성화됨 (안정성 우선)")
+                    logger.info(f"   💡 활성화하려면: load_model(enable_compile=True)")
 
             if device == "cuda":
                 logger.info(f"✅ Grounding DINO 모델을 GPU로 로드")
