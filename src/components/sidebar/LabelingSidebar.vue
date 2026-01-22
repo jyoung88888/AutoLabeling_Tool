@@ -13,17 +13,9 @@
     >
       <!-- 상단 헤더 -->
       <v-list class="pa-0" bg-color="#1e1e1e">
-        <v-list-item
-          class="mt-2 mb-1"
-          color="#e0e0e0"
-        >
+        <v-list-item class="mt-2 mb-1" color="#e0e0e0">
           <template #prepend>
-            <v-img
-              src="/img/auto-labeling-icon.svg"
-              width="32"
-              height="32"
-              class="ml-1"
-            ></v-img>
+            <v-img src="/img/auto-labeling-icon.svg" width="32" height="32" class="ml-1"></v-img>
           </template>
         </v-list-item>
       </v-list>
@@ -54,19 +46,33 @@
       color="#1e1e1e"
       border
     >
-      <v-list-item
-        class="mt-2 mb-3 py-5 px-4"
-      >
+      <v-list-item class="py-3 px-4">
         <template #prepend>
-          <v-img
-            src="/img/auto-labeling-icon.svg"
-            width="36"
-            height="36"
-            class="mr-2"
-          ></v-img>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-spline-pointer-icon lucide-spline-pointer"
+          >
+            <path
+              d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z"
+            />
+            <path d="M5 17A12 12 0 0 1 17 5" />
+            <circle cx="19" cy="5" r="2" />
+            <circle cx="5" cy="19" r="2" />
+          </svg>
         </template>
         <template #title>
-          <div class="text-h5 font-weight-bold primary--text text-no-wrap" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e0e0e0;">
+          <div
+            class="text-h6 primary--text text-no-wrap ml-3"
+            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+          >
             이미지 자동 라벨링
           </div>
         </template>
@@ -80,10 +86,16 @@
         </template>
       </v-list-item>
 
-      <v-divider color="#333"></v-divider>
-
       <v-list density="compact" nav class="py-2 px-2" bg-color="#252525">
+        <!-- 프로젝트 로더 섹션 -->
+        <ProjectLoader
+          :project-path="projectPath"
+          :total-images="results ? results.length : 0"
+          @open-load-project="$emit('openLoadProject')"
+        />
+
         <!-- 모델 설정 섹션 -->
+        <v-divider></v-divider>
         <ModelSettingsSection
           :models="models"
           :selected-model-type="selectedModelType"
@@ -91,6 +103,7 @@
           :selected-model="selectedModel"
           :model-status-message="modelStatusMessage"
           :model-status-success="modelStatusSuccess"
+          :is-loading-model="isLoadingModel"
           :device-info="deviceInfo"
           @update:selected-model-type="$emit('update:selectedModelType', $event)"
           @update:selected-model="$emit('update:selectedModel', $event)"
@@ -99,16 +112,8 @@
           @fetch-model-details="$emit('fetchModelDetails', $event)"
         />
 
-        <!-- 이미지 선택 섹션 -->
-        <ImageSelectionSection
-          :uploaded-images="uploadedImages"
-          :image-status-message="imageStatusMessage"
-          :image-status-success="imageStatusSuccess"
-          @file-upload="$emit('fileUpload', $event)"
-          @clear-files="$emit('clearFiles')"
-        />
-
         <!-- 클래스 선택 섹션 (YOLO 모델용) -->
+        <v-divider v-if="modelLoaded && !supportsTextPrompt"></v-divider>
         <ClassSelectionSection
           v-if="modelLoaded && !supportsTextPrompt"
           :available-classes="availableClasses"
@@ -130,6 +135,7 @@
         />
 
         <!-- 텍스트 프롬프트 섹션 (Grounding DINO용) -->
+        <v-divider v-if="modelLoaded && supportsTextPrompt"></v-divider>
         <TextPromptSection
           v-if="modelLoaded && supportsTextPrompt"
           :text-prompt="textPrompt"
@@ -143,29 +149,46 @@
         />
 
         <!-- 신뢰도 설정 섹션 (YOLO 모델용) -->
+        <v-divider v-if="modelLoaded && !supportsTextPrompt"></v-divider>
         <ConfidenceSettingsSection
           v-if="modelLoaded && !supportsTextPrompt"
           :confidence-threshold="confidenceThreshold"
           @update:confidence-threshold="$emit('update:confidenceThreshold', $event)"
         />
 
+        <!-- 이미지 선택 섹션 -->
+        <v-divider></v-divider>
+        <ImageSelectionSection
+          :uploaded-images="uploadedImages"
+          :image-status-message="imageStatusMessage"
+          :image-status-success="imageStatusSuccess"
+          @file-upload="$emit('fileUpload', $event)"
+          @clear-files="$emit('clearFiles')"
+        />
+
         <!-- 자동 라벨링 시작 버튼 -->
+        <v-divider v-if="modelLoaded"></v-divider>
         <v-list-item v-if="modelLoaded">
           <v-btn
             block
             @click="$emit('startLabeling')"
             color="#4caf50"
             size="small"
-            :disabled="!canStartLabeling || (!supportsTextPrompt && !classSelectionApplied) || (supportsTextPrompt && !promptApplied)"
+            :disabled="
+              !canStartLabeling ||
+              (!supportsTextPrompt && !classSelectionApplied) ||
+              (supportsTextPrompt && !promptApplied)
+            "
             class="mb-2"
             prepend-icon="mdi-play"
-            style="color: #fff;"
+            style="color: #fff"
           >
             자동 라벨링 시작
           </v-btn>
         </v-list-item>
 
         <!-- 자동 라벨링 진행 상태 표시 (버튼 바로 밑에) -->
+        <v-divider v-if="modelLoaded && isProcessing"></v-divider>
         <v-list-item v-if="modelLoaded && isProcessing">
           <v-card
             class="processing-progress-card pa-3 mb-2"
@@ -173,7 +196,10 @@
             color="#252525"
             border
           >
-            <v-card-title class="pb-1 px-1 text-subtitle-2 font-weight-bold d-flex align-center justify-space-between" style="color: #e0e0e0;">
+            <v-card-title
+              class="pb-1 px-1 text-subtitle-2 font-weight-bold d-flex align-center justify-space-between"
+              style="color: #e0e0e0"
+            >
               <div class="d-flex align-center">
                 <v-icon icon="mdi-cog-play" class="mr-1" color="#4f9cf5" size="small"></v-icon>
                 라벨링 처리중...
@@ -196,14 +222,8 @@
           </v-card>
         </v-list-item>
 
-        <!-- 프로젝트 로더 섹션 -->
-        <ProjectLoader
-          :project-path="projectPath"
-          :total-images="results ? results.length : 0"
-          @open-load-project="$emit('openLoadProject')"
-        />
-
         <!-- 프로젝트 저장 섹션 -->
+        <v-divider></v-divider>
         <ProjectSaver
           ref="projectSaver"
           v-show="modelLoaded"
@@ -217,7 +237,9 @@
         />
 
         <!-- 저신뢰도 이미지 목록 섹션 -->
+        <v-divider v-if="lowConfidenceImages && lowConfidenceImages.length > 0"></v-divider>
         <LowConfidenceSection
+          v-if="lowConfidenceImages && lowConfidenceImages.length > 0"
           :low-confidence-images="lowConfidenceImages"
           @go-to-image="$emit('goToImage', $event)"
         />
@@ -248,173 +270,177 @@ export default {
     LowConfidenceSection,
     ProjectLoader,
     ProjectSaver,
-    LabelingProgress
+    LabelingProgress,
   },
   props: {
     sidebarVisible: {
       type: Boolean,
-      default: true
+      default: true,
     },
     sidebarRail: {
       type: Boolean,
-      default: false
+      default: false,
     },
     sidebarWidth: {
       type: Number,
-      default: 360
+      default: 360,
     },
     models: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     selectedModelType: {
       type: Object,
-      default: null
+      default: null,
     },
     modelDetails: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     selectedModel: {
       type: Object,
-      default: null
+      default: null,
     },
     modelStatusMessage: {
       type: String,
-      default: ''
+      default: '',
     },
     modelStatusSuccess: {
       type: Boolean,
-      default: false
+      default: false,
+    },
+    isLoadingModel: {
+      type: Boolean,
+      default: false,
     },
     deviceInfo: {
       type: Array,
-      default: () => ['알 수 없음']
+      default: () => ['알 수 없음'],
     },
     modelLoaded: {
       type: Boolean,
-      default: false
+      default: false,
     },
     supportsTextPrompt: {
       type: Boolean,
-      default: false
+      default: false,
     },
     uploadedImages: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     imageStatusMessage: {
       type: String,
-      default: ''
+      default: '',
     },
     imageStatusSuccess: {
       type: Boolean,
-      default: false
+      default: false,
     },
     availableClasses: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     selectedClasses: {
       type: Object,
-      default: () => ({})
+      default: () => ({}),
     },
     selectAllClasses: {
       type: Boolean,
-      default: false
+      default: false,
     },
     allClassesSelected: {
       type: Boolean,
-      default: false
+      default: false,
     },
     showClassChangeAlert: {
       type: Boolean,
-      default: false
+      default: false,
     },
     classChangeMessage: {
       type: String,
-      default: ''
+      default: '',
     },
     selectedClassesInfo: {
-      type: String,
-      default: ''
+      type: [String, Object],
+      default: '',
     },
     classSelectionApplied: {
       type: Boolean,
-      default: false
+      default: false,
     },
     canStartLabeling: {
       type: Boolean,
-      default: false
+      default: false,
     },
     isProcessing: {
       type: Boolean,
-      default: false
+      default: false,
     },
     progressPercent: {
       type: Number,
-      default: 0
+      default: 0,
     },
     currentFile: {
       type: String,
-      default: ''
+      default: '',
     },
     timeInfo: {
       type: Object,
       default: () => ({
         elapsed: '',
-        eta: ''
-      })
+        eta: '',
+      }),
     },
     lowConfidenceImages: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     // ProjectSaver를 위한 추가 props
     canSaveProject: {
       type: Boolean,
-      default: false
+      default: false,
     },
     hasResults: {
       type: Boolean,
-      default: false
+      default: false,
     },
     results: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     // ProjectLoader를 위한 추가 props
     projectPath: {
       type: String,
-      default: ''
+      default: '',
     },
     // 모델 클래스 정보
     modelClasses: {
       type: Object,
-      default: () => ({})
+      default: () => ({}),
     },
     // 신뢰도 임계값
     confidenceThreshold: {
       type: Number,
-      default: 0.5
+      default: 0.5,
     },
     // 텍스트 프롬프트 관련 props (Grounding DINO)
     textPrompt: {
       type: String,
-      default: ''
+      default: '',
     },
     boxThreshold: {
       type: Number,
-      default: 0.3
+      default: 0.3,
     },
     textThreshold: {
       type: Number,
-      default: 0.25
+      default: 0.25,
     },
     promptApplied: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   emits: [
     'update:selectedModelType',
@@ -444,7 +470,7 @@ export default {
     'update:textPrompt',
     'update:boxThreshold',
     'update:textThreshold',
-    'applyPrompt'
+    'applyPrompt',
   ],
   methods: {
     handleExpandSidebar() {
@@ -455,39 +481,44 @@ export default {
     },
     // ProjectSaver 다이얼로그 열기
     openProjectSaverDialog() {
-      console.log('LabelingSidebar: ProjectSaver 다이얼로그 열기 요청 수신');
+      console.log('LabelingSidebar: ProjectSaver 다이얼로그 열기 요청 수신')
       console.log('현재 상태:', {
         modelLoaded: this.modelLoaded,
         resultsLength: this.results?.length || 0,
         canSaveProject: this.canSaveProject,
-        hasResults: this.hasResults
-      });
+        hasResults: this.hasResults,
+      })
 
       // ProjectSaver 컴포넌트가 렌더링될 때까지 잠시 대기
       this.$nextTick(() => {
         // ProjectSaver 컴포넌트 참조를 통해 다이얼로그 열기
-        const projectSaver = this.$refs.projectSaver;
+        const projectSaver = this.$refs.projectSaver
         if (projectSaver && typeof projectSaver.openSaveProjectDialog === 'function') {
-          console.log('ProjectSaver 다이얼로그 열기 실행');
-          projectSaver.openSaveProjectDialog();
+          console.log('ProjectSaver 다이얼로그 열기 실행')
+          projectSaver.openSaveProjectDialog()
         } else {
-          console.error('ProjectSaver 컴포넌트를 찾을 수 없거나 openSaveProjectDialog 메서드가 없습니다.');
-          console.log('ProjectSaver 참조:', projectSaver);
+          console.error(
+            'ProjectSaver 컴포넌트를 찾을 수 없거나 openSaveProjectDialog 메서드가 없습니다.',
+          )
+          console.log('ProjectSaver 참조:', projectSaver)
 
           // 강제로 다시 시도
           setTimeout(() => {
-            const retryProjectSaver = this.$refs.projectSaver;
-            if (retryProjectSaver && typeof retryProjectSaver.openSaveProjectDialog === 'function') {
-              console.log('재시도: ProjectSaver 다이얼로그 열기 실행');
-              retryProjectSaver.openSaveProjectDialog();
+            const retryProjectSaver = this.$refs.projectSaver
+            if (
+              retryProjectSaver &&
+              typeof retryProjectSaver.openSaveProjectDialog === 'function'
+            ) {
+              console.log('재시도: ProjectSaver 다이얼로그 열기 실행')
+              retryProjectSaver.openSaveProjectDialog()
             } else {
-              console.error('재시도 실패: ProjectSaver 컴포넌트를 찾을 수 없습니다.');
+              console.error('재시도 실패: ProjectSaver 컴포넌트를 찾을 수 없습니다.')
             }
-          }, 200);
+          }, 200)
         }
-      });
-    }
-  }
+      })
+    },
+  },
 }
 </script>
 

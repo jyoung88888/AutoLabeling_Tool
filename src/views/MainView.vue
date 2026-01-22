@@ -11,6 +11,7 @@
       :selected-model="selectedModel"
       :model-status-message="modelStatusMessage"
       :model-status-success="modelStatusSuccess"
+      :is-loading-model="isLoadingModel"
       :device-info="deviceInfo"
       :model-loaded="modelLoaded"
       :supports-text-prompt="supportsTextPrompt"
@@ -135,9 +136,7 @@
     />
 
     <!-- 단축키 도움말 다이얼로그 -->
-    <KeyboardShortcutsDialog
-      v-model="showHelpDialog"
-    />
+    <KeyboardShortcutsDialog v-model="showHelpDialog" />
 
     <!-- 파일 삭제 확인 다이얼로그 -->
     <DeleteConfirmDialog
@@ -161,28 +160,15 @@
           변경사항 저장
         </v-card-title>
         <v-card-text class="py-4">
-          <div class="text-body-1 mb-2">
-            현재 이미지에 저장되지 않은 변경사항이 있습니다.
-          </div>
+          <div class="text-body-1 mb-2">현재 이미지에 저장되지 않은 변경사항이 있습니다.</div>
           <div class="text-body-2 text-grey-lighten-1">
             이미지를 이동하기 전에 변경사항을 저장하시겠습니까?
           </div>
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer></v-spacer>
-          <v-btn
-            color="grey"
-            variant="text"
-            @click="handleSaveConfirmNo"
-          >
-            아니오
-          </v-btn>
-          <v-btn
-            color="primary"
-            variant="elevated"
-            @click="handleSaveConfirmYes"
-            class="ml-2"
-          >
+          <v-btn color="grey" variant="text" @click="handleSaveConfirmNo"> 아니오 </v-btn>
+          <v-btn color="primary" variant="elevated" @click="handleSaveConfirmYes" class="ml-2">
             예, 저장
           </v-btn>
         </v-card-actions>
@@ -294,9 +280,7 @@
           <div class="text-subtitle-1 font-weight-bold notification-title">
             바운딩 박스 그리기 모드
           </div>
-          <div class="text-caption notification-message">
-            드래그하여 새 바운딩 박스를 그리세요
-          </div>
+          <div class="text-caption notification-message">드래그하여 새 바운딩 박스를 그리세요</div>
         </div>
       </div>
 
@@ -373,9 +357,7 @@
           class="mr-4 notification-icon"
         ></v-icon>
         <div>
-          <div class="text-subtitle-1 font-weight-bold notification-title">
-            전체 복사 완료
-          </div>
+          <div class="text-subtitle-1 font-weight-bold notification-title">전체 복사 완료</div>
           <div class="text-caption notification-message">
             {{ copyAllMessage }}
           </div>
@@ -419,7 +401,7 @@ export default {
     ImageViewer,
     ProjectLoadDialog,
     KeyboardShortcutsDialog,
-    DeleteConfirmDialog
+    DeleteConfirmDialog,
   },
   setup() {
     // Reactive state
@@ -513,10 +495,11 @@ export default {
       deviceInfo,
       modelClasses,
       supportsTextPrompt,
+      isLoadingModel,
       refreshModels,
       loadModel,
       fetchModelDetails,
-      loadModelClasses
+      loadModelClasses,
     } = useModelManagement()
 
     const {
@@ -531,7 +514,7 @@ export default {
       classChangeMessage,
       selectedClassesInfo,
       classSelectionApplied,
-      canStartLabeling: canStartLabelingYOLO,  // YOLO 전용 조건
+      canStartLabeling: canStartLabelingYOLO, // YOLO 전용 조건
       handleFileUpload,
       clearUploadedFiles,
       toggleAllClasses,
@@ -539,7 +522,7 @@ export default {
       checkSelectedClasses,
       applyClassSelection,
       dismissClassChangeAlert,
-      updateAvailableClassesFromModel
+      updateAvailableClassesFromModel,
     } = useImageManagement()
 
     // 모델 타입에 따른 자동 라벨링 시작 가능 여부
@@ -555,16 +538,14 @@ export default {
       }
     })
 
-    const {
-      loadSelectedProject,
-      handleProjectSaveComplete: baseHandleProjectSaveComplete
-    } = useProjectManagement()
+    const { loadSelectedProject, handleProjectSaveComplete: baseHandleProjectSaveComplete } =
+      useProjectManagement()
 
     const {
       lowConfidenceImages,
       rebuildLowConfidenceImages,
       setLowConfidenceImagesFromProject,
-      clearLowConfidenceImages
+      clearLowConfidenceImages,
     } = useLowConfidenceImages()
 
     // 화면 초기화 함수
@@ -608,7 +589,7 @@ export default {
         handleStatusMessage({
           message: result.message,
           type: 'success',
-          icon: 'mdi-check-circle'
+          icon: 'mdi-check-circle',
         })
 
         // 짧은 지연 후 화면 초기화 (메시지를 사용자가 볼 수 있도록)
@@ -619,7 +600,7 @@ export default {
           handleStatusMessage({
             message: '새로운 프로젝트를 시작할 수 있습니다.',
             type: 'info',
-            icon: 'mdi-information'
+            icon: 'mdi-information',
           })
         }, 1500)
       }
@@ -654,8 +635,9 @@ export default {
         // 자동 라벨링 시작 시 색상 캐시 초기화하여 새로운 랜덤 색상 배정
         clearColorCache()
 
-        const selectedClassList = Object.keys(selectedClasses.value)
-          .filter(key => selectedClasses.value[key])
+        const selectedClassList = Object.keys(selectedClasses.value).filter(
+          (key) => selectedClasses.value[key],
+        )
 
         isProcessing.value = true
         labelingComplete.value = false
@@ -673,7 +655,7 @@ export default {
             progressPercent.value = progress.percent
             currentFile.value = progress.currentFile
             timeInfo.value = progress.timeInfo
-          }
+          },
         })
 
         results.value = labelingResults
@@ -681,36 +663,42 @@ export default {
         currentImageIndex.value = 1
 
         // 리사이즈 통계 수집 및 사용자 피드백
-        const resizedImages = labelingResults.filter(result => result && result.wasResized)
-        const veryLowResImages = labelingResults.filter(result => result && result.veryLowResolution)
+        const resizedImages = labelingResults.filter((result) => result && result.wasResized)
+        const veryLowResImages = labelingResults.filter(
+          (result) => result && result.veryLowResolution,
+        )
 
         if (veryLowResImages.length > 0) {
           const veryLowCount = veryLowResImages.length
           const totalCount = labelingResults.length
-          const veryLowImageNames = veryLowResImages.map(img => img.filename).join(', ')
+          const veryLowImageNames = veryLowResImages.map((img) => img.filename).join(', ')
 
-          console.log(`🔧 [자동라벨링 완료] 총 ${totalCount}개 이미지 중 ${veryLowCount}개 매우 낮은 해상도 이미지가 고품질 letterbox 리사이즈되었습니다`)
+          console.log(
+            `🔧 [자동라벨링 완료] 총 ${totalCount}개 이미지 중 ${veryLowCount}개 매우 낮은 해상도 이미지가 고품질 letterbox 리사이즈되었습니다`,
+          )
           console.log(`고품질 리사이즈된 이미지: ${veryLowImageNames}`)
 
           // 매우 낮은 해상도 이미지 전용 알림
           handleStatusMessage({
             message: `자동라벨링 완료! 매우 낮은 해상도 이미지 ${veryLowCount}개에 고품질 letterbox 리사이즈가 적용되어 검출 성능이 크게 향상되었습니다.`,
             type: 'success',
-            icon: 'mdi-image-filter-hdr'
+            icon: 'mdi-image-filter-hdr',
           })
         } else if (resizedImages.length > 0) {
           const resizedCount = resizedImages.length
           const totalCount = labelingResults.length
-          const resizedImageNames = resizedImages.map(img => img.filename).join(', ')
+          const resizedImageNames = resizedImages.map((img) => img.filename).join(', ')
 
-          console.log(`🔄 [자동라벨링 완료] 총 ${totalCount}개 이미지 중 ${resizedCount}개 이미지가 자동 리사이즈되었습니다`)
+          console.log(
+            `🔄 [자동라벨링 완료] 총 ${totalCount}개 이미지 중 ${resizedCount}개 이미지가 자동 리사이즈되었습니다`,
+          )
           console.log(`리사이즈된 이미지: ${resizedImageNames}`)
 
           // 사용자에게 리사이즈 정보 알림
           handleStatusMessage({
             message: `자동라벨링 완료! 낮은 해상도 이미지 ${resizedCount}개가 성능 향상을 위해 자동 리사이즈되었습니다.`,
             type: 'info',
-            icon: 'mdi-image-size-select-actual'
+            icon: 'mdi-image-size-select-actual',
           })
         } else {
           console.log(`✅ [자동라벨링 완료] 모든 이미지가 충분한 해상도를 가지고 있습니다`)
@@ -719,13 +707,12 @@ export default {
           handleStatusMessage({
             message: `자동라벨링 완료! 총 ${labelingResults.length}개 이미지가 처리되었습니다.`,
             type: 'success',
-            icon: 'mdi-check-circle'
+            icon: 'mdi-check-circle',
           })
         }
 
         // Rebuild low confidence images
         rebuildLowConfidenceImages(results.value)
-
       } catch (error) {
         console.error('자동 라벨링 오류:', error)
       } finally {
@@ -765,7 +752,7 @@ export default {
             handleStatusMessage({
               message: '이미지 이동으로 인해 편집 모드가 자동 해제되었습니다',
               type: 'info',
-              icon: 'mdi-arrow-left-circle'
+              icon: 'mdi-arrow-left-circle',
             })
           }
           currentImageIndex.value--
@@ -782,7 +769,7 @@ export default {
             handleStatusMessage({
               message: '이미지 이동으로 인해 편집 모드가 자동 해제되었습니다',
               type: 'info',
-              icon: 'mdi-arrow-right-circle'
+              icon: 'mdi-arrow-right-circle',
             })
           }
           currentImageIndex.value++
@@ -799,7 +786,7 @@ export default {
             handleStatusMessage({
               message: '이미지 이동으로 인해 편집 모드가 자동 해제되었습니다',
               type: 'info',
-              icon: 'mdi-skip-next-circle'
+              icon: 'mdi-skip-next-circle',
             })
           }
           currentImageIndex.value = index
@@ -827,7 +814,11 @@ export default {
               // 삭제할 박스를 찾아서 제거 (인덱스로 찾기, 다중 삭제시 역순 처리됨)
               if (changes.index >= 0 && changes.index < currentImageResult.boxes.length) {
                 const removedBox = currentImageResult.boxes.splice(changes.index, 1)[0]
-                console.log(`박스 삭제 완료: 인덱스 ${changes.index}, 삭제된 박스:`, removedBox?.class_name || removedBox?.label, `남은 박스 수: ${currentImageResult.boxes.length}`)
+                console.log(
+                  `박스 삭제 완료: 인덱스 ${changes.index}, 삭제된 박스:`,
+                  removedBox?.class_name || removedBox?.label,
+                  `남은 박스 수: ${currentImageResult.boxes.length}`,
+                )
               }
             }
           } else if (changes.action === 'add') {
@@ -837,9 +828,17 @@ export default {
             }
             currentImageResult.boxes.push(changes.box)
             console.log(`박스 추가 완료: 총 박스 수: ${currentImageResult.boxes.length}`)
-          } else if (changes.action === 'modify' || changes.action === 'resize' || changes.action === 'move') {
+          } else if (
+            changes.action === 'modify' ||
+            changes.action === 'resize' ||
+            changes.action === 'move'
+          ) {
             // 기존 박스 수정/리사이즈/이동
-            if (currentImageResult.boxes && changes.index >= 0 && changes.index < currentImageResult.boxes.length) {
+            if (
+              currentImageResult.boxes &&
+              changes.index >= 0 &&
+              changes.index < currentImageResult.boxes.length
+            ) {
               currentImageResult.boxes[changes.index] = { ...changes.box }
               console.log(`박스 ${changes.action} 완료: 인덱스 ${changes.index}`)
             }
@@ -866,9 +865,11 @@ export default {
       lastStatusMessage.value = statusData.message
 
       // 전체 복사 관련 메시지인지 확인 (더 포괄적으로)
-      if ((statusData.message.includes('개의 바운딩 박스가 복사되었습니다') ||
-           statusData.message.includes('복사할 바운딩 박스가 없습니다')) &&
-          (statusData.type === 'success' || statusData.type === 'info')) {
+      if (
+        (statusData.message.includes('개의 바운딩 박스가 복사되었습니다') ||
+          statusData.message.includes('복사할 바운딩 박스가 없습니다')) &&
+        (statusData.type === 'success' || statusData.type === 'info')
+      ) {
         console.log('전체 복사 관련 메시지 감지:', statusData.message)
 
         // 기존 알림이 있으면 즉시 닫기
@@ -971,7 +972,7 @@ export default {
           handleStatusMessage({
             message: '저장에 실패했습니다. 다시 시도해주세요.',
             type: 'error',
-            icon: 'mdi-alert-circle'
+            icon: 'mdi-alert-circle',
           })
         }
       }
@@ -999,11 +1000,14 @@ export default {
       console.log('프로젝트 경로:', projectPath.value)
 
       if (!currentResult.value || !projectPath.value) {
-        console.error('❌ 삭제 조건 불만족:', { currentResult: currentResult.value, projectPath: projectPath.value })
+        console.error('❌ 삭제 조건 불만족:', {
+          currentResult: currentResult.value,
+          projectPath: projectPath.value,
+        })
         handleStatusMessage({
           message: '삭제할 파일을 찾을 수 없습니다.',
           type: 'error',
-          icon: 'mdi-alert-circle'
+          icon: 'mdi-alert-circle',
         })
         showDeleteConfirmDialog.value = false
         return
@@ -1018,7 +1022,7 @@ export default {
 
         console.log('📡 API 호출 시작:', {
           filename: currentResult.value.filename,
-          projectPath: projectPath.value
+          projectPath: projectPath.value,
         })
 
         const response = await deleteImageAndLabel(currentResult.value.filename, projectPath.value)
@@ -1030,15 +1034,15 @@ export default {
           handleStatusMessage({
             message: response.message,
             type: 'success',
-            icon: 'mdi-delete'
+            icon: 'mdi-delete',
           })
 
-                    // 현재 이미지를 results에서 제거
+          // 현재 이미지를 results에서 제거
           const currentIndex = currentImageIndex.value - 1
           console.log('🔄 UI 업데이트 시작:', {
             currentIndex,
             totalImages: results.value.length,
-            currentImageIndex: currentImageIndex.value
+            currentImageIndex: currentImageIndex.value,
           })
 
           // 삭제 전 상태 로깅
@@ -1082,13 +1086,12 @@ export default {
           rebuildLowConfidenceImages(results.value)
 
           console.log('✅ UI 업데이트 완료')
-
         } else {
           console.error('❌ 파일 삭제 실패:', response.message)
           handleStatusMessage({
             message: response.message || '파일 삭제에 실패했습니다.',
             type: 'error',
-            icon: 'mdi-alert-circle'
+            icon: 'mdi-alert-circle',
           })
         }
       } catch (error) {
@@ -1097,7 +1100,7 @@ export default {
         handleStatusMessage({
           message: '파일 삭제 중 오류가 발생했습니다.',
           type: 'error',
-          icon: 'mdi-alert-circle'
+          icon: 'mdi-alert-circle',
         })
       } finally {
         isDeletingFile.value = false
@@ -1133,71 +1136,75 @@ export default {
           console.log('=== 프로젝트 로드: 클래스 정보 처리 시작 ===')
           console.log('서버에서 받은 projectData:', projectData)
 
-          let projectClasses = null;
+          let projectClasses = null
 
           // 1. class_info 우선 확인 (서버에서 전달)
-          if (projectData.class_info && Array.isArray(projectData.class_info) && projectData.class_info.length > 0) {
-            console.log('✅ 프로젝트 파일에서 class_info 발견:', projectData.class_info);
+          if (
+            projectData.class_info &&
+            Array.isArray(projectData.class_info) &&
+            projectData.class_info.length > 0
+          ) {
+            console.log('✅ 프로젝트 파일에서 class_info 발견:', projectData.class_info)
 
             // class_info를 클래스 매핑 객체로 변환: [{"id": 0, "name": "person"}, ...] -> {0: "person", 1: "helmet", ...}
-            const classMapping = {};
-            projectData.class_info.forEach(classInfo => {
+            const classMapping = {}
+            projectData.class_info.forEach((classInfo) => {
               if (classInfo.id !== undefined && classInfo.name) {
-                classMapping[classInfo.id] = classInfo.name;
+                classMapping[classInfo.id] = classInfo.name
               }
-            });
+            })
 
-            console.log('✅ class_info를 클래스 매핑으로 변환:', classMapping);
-            console.log('🎯 프로젝트 저장 시와 동일한 클래스 정보 사용');
+            console.log('✅ class_info를 클래스 매핑으로 변환:', classMapping)
+            console.log('🎯 프로젝트 저장 시와 동일한 클래스 정보 사용')
 
-            projectClasses = classMapping;
-
+            projectClasses = classMapping
           } else if (projectData.classes && projectData.classes.length > 0) {
             // 2. 기존 classes 배열 사용 (하위 호환성)
-            console.log('⚠️ class_info가 없어서 기존 classes 배열 사용:', projectData.classes);
+            console.log('⚠️ class_info가 없어서 기존 classes 배열 사용:', projectData.classes)
 
-            const classMapping = {};
+            const classMapping = {}
             projectData.classes.forEach((className, index) => {
-              classMapping[index] = className;
-            });
+              classMapping[index] = className
+            })
 
-            projectClasses = classMapping;
-
+            projectClasses = classMapping
           } else {
             // 3. 현재 로드된 모델의 클래스 정보 사용
-            console.log('📡 프로젝트에 클래스 정보가 없어서 현재 모델의 클래스 정보 사용');
+            console.log('📡 프로젝트에 클래스 정보가 없어서 현재 모델의 클래스 정보 사용')
 
             if (modelClasses.value && Object.keys(modelClasses.value).length > 0) {
-              projectClasses = modelClasses.value;
-              console.log('✅ 현재 모델의 클래스 정보 사용:', projectClasses);
+              projectClasses = modelClasses.value
+              console.log('✅ 현재 모델의 클래스 정보 사용:', projectClasses)
             } else {
-              console.warn('❌ 현재 모델의 클래스 정보도 없음');
+              console.warn('❌ 현재 모델의 클래스 정보도 없음')
             }
           }
 
           // 클래스 정보 업데이트
           if (projectClasses && Object.keys(projectClasses).length > 0) {
-            console.log('🔄 사이드바 클래스 선택 UI 업데이트 시작');
-            updateAvailableClassesFromModel(projectClasses);
-            console.log('✅ 사이드바 클래스 선택 UI 업데이트 완료');
+            console.log('🔄 사이드바 클래스 선택 UI 업데이트 시작')
+            updateAvailableClassesFromModel(projectClasses)
+            console.log('✅ 사이드바 클래스 선택 UI 업데이트 완료')
 
             // 🎯 프로젝트 class_info를 ImageViewer에서 사용할 수 있도록 저장
             if (projectData.class_info && Array.isArray(projectData.class_info)) {
-              projectClassInfo.value = projectData.class_info;
-              console.log('✅ 프로젝트 class_info 저장 완료:', projectClassInfo.value);
+              projectClassInfo.value = projectData.class_info
+              console.log('✅ 프로젝트 class_info 저장 완료:', projectClassInfo.value)
             } else {
               // class_info가 없는 경우 projectClasses를 class_info 형태로 변환
-              const convertedClassInfo = Object.entries(projectClasses).map(([id, name]) => ({
-                id: parseInt(id),
-                name: name
-              })).sort((a, b) => a.id - b.id);
+              const convertedClassInfo = Object.entries(projectClasses)
+                .map(([id, name]) => ({
+                  id: parseInt(id),
+                  name: name,
+                }))
+                .sort((a, b) => a.id - b.id)
 
-              projectClassInfo.value = convertedClassInfo;
-              console.log('✅ 변환된 class_info 저장 완료:', projectClassInfo.value);
+              projectClassInfo.value = convertedClassInfo
+              console.log('✅ 변환된 class_info 저장 완료:', projectClassInfo.value)
             }
           } else {
-            console.warn('⚠️ 업데이트할 클래스 정보가 없음');
-            projectClassInfo.value = []; // 클래스 정보가 없으면 빈 배열로 설정
+            console.warn('⚠️ 업데이트할 클래스 정보가 없음')
+            projectClassInfo.value = [] // 클래스 정보가 없으면 빈 배열로 설정
           }
 
           // 결과 데이터 설정
@@ -1221,14 +1228,14 @@ export default {
             projectName: projectData.projectName,
             totalImages: projectData.totalImages,
             classCount: projectClasses ? Object.keys(projectClasses).length : 0,
-            hasClassInfo: projectData.class_info ? true : false
+            hasClassInfo: projectData.class_info ? true : false,
           })
 
           // 성공 메시지 표시
           handleStatusMessage({
             message: `프로젝트 "${projectName}"를 성공적으로 불러왔습니다.`,
             type: 'success',
-            icon: 'mdi-check-circle'
+            icon: 'mdi-check-circle',
           })
         }
       } catch (error) {
@@ -1239,7 +1246,7 @@ export default {
         handleStatusMessage({
           message: `프로젝트 로드 실패: ${error.message}`,
           type: 'error',
-          icon: 'mdi-alert-circle'
+          icon: 'mdi-alert-circle',
         })
       } finally {
         isLoadingProject.value = false
@@ -1251,20 +1258,48 @@ export default {
     const handleKeyDown = (event) => {
       // 다이얼로그나 입력 필드가 활성화된 경우 단축키 비활성화
       const target = event.target
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
         return
       }
 
       // 다이얼로그가 열려있는 경우 단축키 비활성화
-      if (showLoadProjectDialog.value || showHelpDialog.value || showClassChangeAlert.value || showDeleteConfirmDialog.value) {
+      if (
+        showLoadProjectDialog.value ||
+        showHelpDialog.value ||
+        showClassChangeAlert.value ||
+        showDeleteConfirmDialog.value
+      ) {
         return
       }
 
       const key = event.key.toLowerCase()
 
       // 다른 단축키들의 preventDefault 처리
-      const shouldPreventDefault = ['e', 'r', 'b', 'd', 'a', 'p', 's', 'f', 'h', 'g', 'n', 't', 'm', '`', 'home', 'end', 'arrowleft', 'arrowright', 'delete'].includes(key) ||
-                                   /^[0-9]$/.test(key)
+      const shouldPreventDefault =
+        [
+          'e',
+          'r',
+          'b',
+          'd',
+          'a',
+          'p',
+          's',
+          'f',
+          'h',
+          'g',
+          'n',
+          't',
+          'm',
+          '`',
+          'home',
+          'end',
+          'arrowleft',
+          'arrowright',
+          'delete',
+        ].includes(key) || /^[0-9]$/.test(key)
 
       if (shouldPreventDefault) {
         event.preventDefault()
@@ -1333,7 +1368,7 @@ export default {
             handleStatusMessage({
               message: '편집 모드에서만 바운딩 박스를 삭제할 수 있습니다 (E키로 편집모드 활성화)',
               type: 'warning',
-              icon: 'mdi-lock'
+              icon: 'mdi-lock',
             })
           } else if (imageViewer.value?.deleteSelectedBox) {
             // 편집모드일 때만 삭제
@@ -1351,9 +1386,10 @@ export default {
           if (imageViewer.value?.editMode !== 'edit') {
             // 편집모드가 아닐 때는 숨기기/보이기 불가 알림
             handleStatusMessage({
-              message: '편집 모드에서만 바운딩 박스를 숨기거나 표시할 수 있습니다 (E키로 편집모드 활성화)',
+              message:
+                '편집 모드에서만 바운딩 박스를 숨기거나 표시할 수 있습니다 (E키로 편집모드 활성화)',
               type: 'warning',
-              icon: 'mdi-lock'
+              icon: 'mdi-lock',
             })
           } else if (imageViewer.value?.toggleBoxVisibility) {
             // 편집모드일 때만 숨기기/보이기
@@ -1365,9 +1401,10 @@ export default {
           if (imageViewer.value?.editMode !== 'edit') {
             // 편집모드가 아닐 때는 기능 불가 알림
             handleStatusMessage({
-              message: '편집 모드에서만 숨겨진 바운딩 박스를 표시할 수 있습니다 (E키로 편집모드 활성화)',
+              message:
+                '편집 모드에서만 숨겨진 바운딩 박스를 표시할 수 있습니다 (E키로 편집모드 활성화)',
               type: 'warning',
-              icon: 'mdi-lock'
+              icon: 'mdi-lock',
             })
           } else if (imageViewer.value?.showAllHiddenBoxes) {
             // 편집모드일 때만 실행
@@ -1381,7 +1418,7 @@ export default {
             handleStatusMessage({
               message: '편집모드 해제 후 저장할 수 있습니다 (R키로 편집모드 해제)',
               type: 'warning',
-              icon: 'mdi-lock'
+              icon: 'mdi-lock',
             })
 
             // 추가 스낵바 표시
@@ -1421,7 +1458,7 @@ export default {
             handleStatusMessage({
               message: '프로젝트가 로드되어 있고 이미지가 있을 때만 파일을 삭제할 수 있습니다.',
               type: 'warning',
-              icon: 'mdi-alert'
+              icon: 'mdi-alert',
             })
           } else {
             showDeleteConfirmDialog.value = true
@@ -1480,26 +1517,37 @@ export default {
     const updateMousePosition = (event) => {
       mousePosition.value = {
         x: event.clientX,
-        y: event.clientY
+        y: event.clientY,
       }
     }
 
     const handleKeyUp = (event) => {
       // 다이얼로그나 입력 필드가 활성화된 경우 단축키 비활성화
       const target = event.target
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
         return
       }
 
       // 다이얼로그가 열려있는 경우 단축키 비활성화
-      if (showLoadProjectDialog.value || showHelpDialog.value || showClassChangeAlert.value || showDeleteConfirmDialog.value) {
+      if (
+        showLoadProjectDialog.value ||
+        showHelpDialog.value ||
+        showClassChangeAlert.value ||
+        showDeleteConfirmDialog.value
+      ) {
         return
       }
     }
 
     // Lifecycle
     onMounted(() => {
-      document.documentElement.style.setProperty('--sidebar-width', sidebarRail.value ? '60px' : '360px')
+      document.documentElement.style.setProperty(
+        '--sidebar-width',
+        sidebarRail.value ? '60px' : '360px',
+      )
       // 키보드 이벤트를 즉각적으로 처리하기 위해 capture 옵션 사용
       window.addEventListener('keydown', handleKeyDown, { capture: true, passive: false })
       window.addEventListener('keyup', handleKeyUp, { capture: true, passive: false })
@@ -1522,18 +1570,22 @@ export default {
     })
 
     // 모델 클래스가 변경될 때 availableClasses 업데이트
-    watch(modelClasses, (newModelClasses) => {
-      console.log('🔄 MainView: YOLO 모델 클래스 변화 감지됨')
-      console.log('새로운 모델 클래스 (YOLO ID 순서):', newModelClasses)
+    watch(
+      modelClasses,
+      (newModelClasses) => {
+        console.log('🔄 MainView: YOLO 모델 클래스 변화 감지됨')
+        console.log('새로운 모델 클래스 (YOLO ID 순서):', newModelClasses)
 
-      if (newModelClasses && Object.keys(newModelClasses).length > 0) {
-        console.log('✅ 유효한 YOLO 모델 클래스 감지 - 사이드바 클래스 선택 UI 업데이트 시작')
-        console.log('🎯 이 클래스 순서는 프로젝트 저장 시와 완전히 동일합니다')
-        updateAvailableClassesFromModel(newModelClasses)
-      } else {
-        console.log('❌ 모델 클래스가 비어있음 - UI 업데이트 생략')
-      }
-    }, { deep: true })
+        if (newModelClasses && Object.keys(newModelClasses).length > 0) {
+          console.log('✅ 유효한 YOLO 모델 클래스 감지 - 사이드바 클래스 선택 UI 업데이트 시작')
+          console.log('🎯 이 클래스 순서는 프로젝트 저장 시와 완전히 동일합니다')
+          updateAvailableClassesFromModel(newModelClasses)
+        } else {
+          console.log('❌ 모델 클래스가 비어있음 - UI 업데이트 생략')
+        }
+      },
+      { deep: true },
+    )
 
     // 텍스트 프롬프트 적용 핸들러 (Grounding DINO용)
     const handleApplyPrompt = () => {
@@ -1596,7 +1648,9 @@ export default {
       modelLoaded,
       modelStatusMessage,
       modelStatusSuccess,
+      isLoadingModel,
       deviceInfo,
+      modelClasses,
       supportsTextPrompt,
       uploadedImages,
       imageStatusMessage,
@@ -1665,9 +1719,9 @@ export default {
       thickBoxMode,
 
       // Confidence threshold
-      confidenceThreshold
+      confidenceThreshold,
     }
-  }
+  },
 }
 </script>
 
@@ -1739,10 +1793,10 @@ export default {
   color: #ffffff !important;
 }
 
-:deep(.v-btn) {
+/* :deep(.v-btn) {
   color: #ffffff !important;
   font-weight: 500 !important;
-}
+} */
 
 :deep(.v-list-item-title) {
   color: #ffffff !important;
@@ -1819,7 +1873,9 @@ export default {
 :deep(.modern-snackbar) {
   .v-snackbar__wrapper {
     border-radius: 16px !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      0 4px 16px rgba(0, 0, 0, 0.2) !important;
     backdrop-filter: blur(16px) !important;
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
     min-width: 420px !important;
@@ -1870,28 +1926,44 @@ export default {
 /* 편집 모드 알림창 특별 스타일 */
 :deep(.edit-mode-snackbar) {
   .v-snackbar__wrapper {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.95), rgba(21, 101, 192, 0.95)) !important;
+    background: linear-gradient(
+      135deg,
+      rgba(33, 150, 243, 0.95),
+      rgba(21, 101, 192, 0.95)
+    ) !important;
   }
 }
 
 /* 저장 제한 알림창 특별 스타일 */
 :deep(.save-restriction-snackbar) {
   .v-snackbar__wrapper {
-    background: linear-gradient(135deg, rgba(255, 152, 0, 0.95), rgba(245, 124, 0, 0.95)) !important;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 152, 0, 0.95),
+      rgba(245, 124, 0, 0.95)
+    ) !important;
   }
 }
 
 /* 바운딩 박스 그리기 모드 알림창 특별 스타일 */
 :deep(.drawing-mode-snackbar) {
   .v-snackbar__wrapper {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(56, 142, 60, 0.95)) !important;
+    background: linear-gradient(
+      135deg,
+      rgba(76, 175, 80, 0.95),
+      rgba(56, 142, 60, 0.95)
+    ) !important;
   }
 }
 
 /* 이미 저장 완료 알림창 특별 스타일 */
 :deep(.already-saved-snackbar) {
   .v-snackbar__wrapper {
-    background: linear-gradient(135deg, rgba(3, 169, 244, 0.95), rgba(2, 136, 209, 0.95)) !important;
+    background: linear-gradient(
+      135deg,
+      rgba(3, 169, 244, 0.95),
+      rgba(2, 136, 209, 0.95)
+    ) !important;
   }
 }
 </style>

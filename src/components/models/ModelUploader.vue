@@ -1,12 +1,33 @@
 <template>
   <div class="model-uploader">
     <v-card class="model-upload-card" color="#2a2a2a" elevation="0">
-      <v-card-title class="text-subtitle-1 font-weight-bold pa-3" style="color: #e0e0e0">
-        <v-icon icon="mdi-cloud-upload" size="small" color="#4f9cf5" class="mr-2"></v-icon>
-        모델 업로드
+      <v-card-title class="text-subtitle-1 font-weight-bold pa-3 d-flex align-center ga-2">
+        <div class="bg-grey-darken-3 bg-opacity-30 text-light-blue pa-1 rounded d-flex">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-file-up-icon lucide-file-up"
+          >
+            <path
+              d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"
+            />
+            <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+            <path d="M12 12v6" />
+            <path d="m15 15-3-3-3 3" />
+          </svg>
+        </div>
+
+        모델 추가
       </v-card-title>
 
-      <v-card-text class="pb-3 px-3 d-flex flex-column gap-3">
+      <v-card-text class="pb-3 px-3 d-flex flex-column ga-2">
         <!-- 파일 선택 -->
         <!-- <v-file-input
           v-model="selectedFile"
@@ -23,13 +44,14 @@
         <v-file-upload
           v-model="selectedFile"
           accept=".pt,.pth,.onnx,.engine"
-          label="모델 업로드"
+          label="모델 추가"
           class="dark-select"
           rounded="lg"
-          variant="comfortable"
-          density="comfortable"
-          height="180"
-          ><template v-slot:icon>
+          density="compact"
+          variant="compact"
+          show-size
+        >
+          <template v-slot:icon>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -60,20 +82,40 @@
               <span class="text-caption text-grey">(.pt,.pth,.onnx,.engine)</span>
             </div>
           </template>
+          <template v-slot:default>
+            <v-file-item
+              v-if="selectedFile"
+              :file="selectedFile"
+              :show-size="true"
+              clearable
+            ></v-file-item>
+          </template>
         </v-file-upload>
 
         <!-- 업로드 버튼 -->
         <v-btn
-          block
-          color="#4f9cf5"
-          size="small"
+          color="white"
+          variant="tonal"
           :disabled="!canUpload"
           :loading="isUploading"
           @click="uploadModel"
-          prepend-icon="mdi-upload"
-          style="color: #fff"
         >
-          {{ isUploading ? '업로드 중...' : '모델 업로드' }}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-plus-icon lucide-plus mr-2"
+          >
+            <path d="M5 12h14" />
+            <path d="M12 5v14" />
+          </svg>
+          <span>{{ isUploading ? '모델 추가 중...' : '모델 추가' }}</span>
         </v-btn>
 
         <!-- 상태 메시지 -->
@@ -185,11 +227,6 @@ export default {
   width: 100%;
 }
 
-.model-upload-card {
-  border: 1px solid #333;
-  border-radius: 8px;
-}
-
 .dark-select :deep(.v-field) {
   border: none !important;
   background-color: #333 !important;
@@ -222,5 +259,22 @@ export default {
 
 .dark-select :deep(.v-field--focused .v-field__outline) {
   color: #4f9cf5 !important;
+}
+
+.dark-select :deep(.v-file-item .v-file-item__name) {
+  font-weight: 700 !important;
+}
+
+/* 파일 아이템 영역 내부의 title 숨김 */
+.dark-select :deep(.v-file-upload__files .v-file-upload__title) {
+  display: none !important;
+}
+
+.dark-select :deep(.v-file-upload__files .text-body-2) {
+  display: none !important;
+}
+
+.dark-select :deep(.v-file-upload__files .text-caption) {
+  display: none !important;
 }
 </style>

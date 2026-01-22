@@ -1,13 +1,11 @@
 <template>
   <div>
-    <v-list-subheader class="text-subtitle-1 font-weight-bold text-wrap pa-0" style="color: #e0e0e0;">
-      <div class="mb-2 mt-2 px-2 d-flex align-center">
-        <v-icon icon="mdi-alert-circle" size="small" color="#f0ad4e" class="mr-2"></v-icon>
-        저신뢰도 이미지 목록
-      </div>
-    </v-list-subheader>
+    <div class="mb-2 mt-2 px-2 d-flex align-center">
+      <v-icon icon="mdi-alert-circle" size="small" color="#f0ad4e" class="mr-2"></v-icon>
+      저신뢰도 이미지 목록
+    </div>
 
-    <v-list-item class="pa-0">
+    <div class="px-4">
       <v-card
         class="low-confidence-card pa-0 mb-2"
         variant="outlined"
@@ -27,12 +25,12 @@
         color="#252525"
         border
       >
-        <div class="text-center py-2" style="color: #a0a0a0;">
+        <div class="text-center py-2" style="color: #a0a0a0">
           <v-icon icon="mdi-check-circle" color="#4caf50" class="mb-1"></v-icon>
           <div>저신뢰도 이미지가 없습니다</div>
         </div>
       </v-card>
-    </v-list-item>
+    </div>
   </div>
 </template>
 
@@ -42,15 +40,15 @@ import LowConfidenceList from '../ui/LowConfidenceList.vue'
 export default {
   name: 'LowConfidenceSection',
   components: {
-    LowConfidenceList
+    LowConfidenceList,
   },
   props: {
     lowConfidenceImages: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
-  emits: ['goToImage']
+  emits: ['goToImage'],
 }
 </script>
 

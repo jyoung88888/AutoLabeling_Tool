@@ -2,33 +2,55 @@
   <div class="project-loader">
     <!-- 프로젝트 불러오기 UI -->
     <div class="project-section">
-      <v-list-subheader class="text-subtitle-1 font-weight-bold text-wrap pa-0" style="color: #e0e0e0;">
-        <div class="mb-2 mt-4 px-2">📂 프로젝트 불러오기</div>
-      </v-list-subheader>
+      <div class="font-weight-bold mb-3 mt-4 px-2 d-flex align-center ga-2">
+        <div class="bg-grey-darken-3 bg-opacity-30 text-amber-lighten-1 pa-1 rounded d-flex">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-folder-input-icon lucide-folder-input"
+          >
+            <path
+              d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1"
+            />
+            <path d="M2 13h10" />
+            <path d="m9 16 3-3-3-3" />
+          </svg>
+        </div>
+        프로젝트 불러오기
+      </div>
 
       <!-- 프로젝트 불러오기 버튼 -->
-      <v-list-item>
-        <v-btn
-          block
-          color="#4CAF50"
-          size="small"
-          class="mb-2"
-          prepend-icon="mdi-folder-open"
-          @click="openLoadProjectDialog"
-          style="color: #fff;"
-        >
+      <div class="px-2">
+        <v-btn block color="white" variant="tonal" @click="openLoadProjectDialog"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-arrow-right-icon lucide-arrow-right mr-2"
+          >
+            <path d="M5 12h14" />
+            <path d="m12 5 7 7-7 7" />
+          </svg>
           프로젝트 불러오기
         </v-btn>
-      </v-list-item>
+      </div>
 
       <!-- 현재 프로젝트 상태 표시 -->
-      <v-list-item v-if="projectPath">
-        <v-alert
-          density="compact"
-          type="success"
-          variant="tonal"
-          class="mb-2"
-        >
+      <template v-if="projectPath">
+        <v-alert density="compact" type="success" variant="tonal" class="mb-2">
           <div class="project-info">
             <div class="d-flex align-center mb-1">
               <v-icon icon="mdi-folder-multiple" color="success" class="mr-2" size="small"></v-icon>
@@ -43,7 +65,7 @@
             </div>
           </div>
         </v-alert>
-      </v-list-item>
+      </template>
     </div>
   </div>
 </template>
@@ -54,37 +76,37 @@ export default {
   props: {
     projectPath: {
       type: String,
-      default: ''
+      default: '',
     },
     totalImages: {
       type: Number,
-      default: 0
-    }
+      default: 0,
+    },
   },
   emits: ['open-load-project'],
   computed: {
     displayProjectPath() {
-      if (!this.projectPath) return '';
+      if (!this.projectPath) return ''
 
       // 경로가 너무 긴 경우 마지막 부분만 표시
-      const pathParts = this.projectPath.split('/');
+      const pathParts = this.projectPath.split('/')
       if (pathParts.length > 3) {
         // 처음 부분과 마지막 2-3개 부분만 보이게 함
-        const start = pathParts[0] || pathParts[1];
-        const end = pathParts.slice(-2).join('/');
-        return `${start}/...//${end}`;
+        const start = pathParts[0] || pathParts[1]
+        const end = pathParts.slice(-2).join('/')
+        return `${start}/...//${end}`
       }
 
-      return this.projectPath;
-    }
+      return this.projectPath
+    },
   },
   methods: {
     // MainView의 프로젝트 불러오기 다이얼로그를 열도록 이벤트 발생
     openLoadProjectDialog() {
-      this.$emit('open-load-project');
-    }
-  }
-};
+      this.$emit('open-load-project')
+    },
+  },
+}
 </script>
 
 <style scoped>
@@ -125,7 +147,7 @@ export default {
 
 .project-label {
   font-size: 0.85rem;
-  color: #4CAF50;
+  color: #4caf50;
 }
 
 .project-path {
@@ -141,7 +163,7 @@ export default {
 }
 
 .project-stats {
-  color: #81C784;
+  color: #81c784;
   font-size: 0.75rem;
 }
 

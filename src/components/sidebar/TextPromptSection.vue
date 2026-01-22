@@ -1,18 +1,32 @@
 <template>
-  <div>
-    <v-list-subheader class="text-subtitle-1 font-weight-bold text-wrap pa-0" style="color: #e0e0e0;">
-      <div class="mb-2 mt-4 px-2">💬 텍스트 프롬프트</div>
+  <div class="px-2">
+    <v-list-subheader
+      class="text-subtitle-1 font-weight-bold text-wrap pa-0"
+      style="color: #e0e0e0"
+    >
+      <div class="mb-2 mt-4 d-flex align-center ga-2">
+        <div class="bg-grey-darken-3 bg-opacity-30 text-cyan pa-1 rounded d-flex">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+          </svg>
+        </div>
+        텍스트 프롬프트
+      </div>
     </v-list-subheader>
 
     <v-list-item>
       <div class="text-prompt-section">
-        <v-alert
-          type="info"
-          variant="tonal"
-          density="compact"
-          class="mb-3"
-          border="start"
-        >
+        <v-alert type="info" variant="tonal" density="compact" class="mb-3" border="start">
           탐지할 객체를 텍스트로 입력하세요. (예: person. helmet. car.)
         </v-alert>
 
@@ -32,14 +46,26 @@
         ></v-textarea>
 
         <v-btn
-          size="small"
           block
-          color="#4f9cf5"
+          variant="tonal"
           class="mt-3"
-          prepend-icon="mdi-check"
           @click="applyPrompt"
           :disabled="!localTextPrompt || localTextPrompt.trim() === ''"
         >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-check-icon lucide-check mr-2"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
           프롬프트 적용
         </v-btn>
 
@@ -57,7 +83,7 @@
 
         <!-- Box Threshold 설정 -->
         <div class="mt-4">
-          <v-subheader class="text-caption px-0" style="color: #b0b0b0;">
+          <v-subheader class="text-caption px-0" style="color: #b0b0b0">
             박스 신뢰도 임계값: {{ boxThreshold }}
           </v-subheader>
           <v-slider
@@ -75,7 +101,7 @@
 
         <!-- Text Threshold 설정 -->
         <div class="mt-2">
-          <v-subheader class="text-caption px-0" style="color: #b0b0b0;">
+          <v-subheader class="text-caption px-0" style="color: #b0b0b0">
             텍스트 신뢰도 임계값: {{ textThreshold }}
           </v-subheader>
           <v-slider
@@ -101,61 +127,56 @@ export default {
   props: {
     textPrompt: {
       type: String,
-      default: ''
+      default: '',
     },
     boxThreshold: {
       type: Number,
-      default: 0.3
+      default: 0.3,
     },
     textThreshold: {
       type: Number,
-      default: 0.25
+      default: 0.25,
     },
     promptApplied: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
-  emits: [
-    'update:textPrompt',
-    'update:boxThreshold',
-    'update:textThreshold',
-    'applyPrompt'
-  ],
+  emits: ['update:textPrompt', 'update:boxThreshold', 'update:textThreshold', 'applyPrompt'],
   data() {
     return {
       localTextPrompt: this.textPrompt,
       localBoxThreshold: this.boxThreshold,
       localTextThreshold: this.textThreshold,
-      appliedPrompt: ''
+      appliedPrompt: '',
     }
   },
   watch: {
     textPrompt(newVal) {
-      this.localTextPrompt = newVal;
+      this.localTextPrompt = newVal
     },
     boxThreshold(newVal) {
-      this.localBoxThreshold = newVal;
+      this.localBoxThreshold = newVal
     },
     textThreshold(newVal) {
-      this.localTextThreshold = newVal;
-    }
+      this.localTextThreshold = newVal
+    },
   },
   methods: {
     applyPrompt() {
       if (this.localTextPrompt && this.localTextPrompt.trim() !== '') {
-        this.appliedPrompt = this.localTextPrompt;
-        this.$emit('update:textPrompt', this.localTextPrompt);
-        this.$emit('applyPrompt');
+        this.appliedPrompt = this.localTextPrompt
+        this.$emit('update:textPrompt', this.localTextPrompt)
+        this.$emit('applyPrompt')
       }
     },
     updateBoxThreshold(value) {
-      this.$emit('update:boxThreshold', value);
+      this.$emit('update:boxThreshold', value)
     },
     updateTextThreshold(value) {
-      this.$emit('update:textThreshold', value);
-    }
-  }
+      this.$emit('update:textThreshold', value)
+    },
+  },
 }
 </script>
 

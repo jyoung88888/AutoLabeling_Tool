@@ -55,7 +55,7 @@ const vuetify = createVuetify({
           'on-surface-variant': '#e0e0e0',
 
           // 메인 컬러들
-          primary: '#4CAF50',
+          primary: '#1867C0',
           secondary: '#5CBBF6',
           accent: '#8c9eff',
           error: '#FF5252',

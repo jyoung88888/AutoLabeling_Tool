@@ -35,6 +35,15 @@ from services.project_service import ProjectService
 ModelManager = model_utils.ModelManager
 ImageManager = image_utils.ImageManager
 
+# 로거 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+
 # 로거 객체 생성
 logger = logging.getLogger(__name__)
 
@@ -756,7 +765,18 @@ async def process_labeling(
                 raise HTTPException(status_code=500, detail=f"이미지 인코딩 실패: {str(e)}")
             
             processing_time = time.time() - start_time
-            
+
+            # Grounding DINO용 class_info 생성 (프롬프트 순서 유지)
+            class_info_for_frontend = []
+            if text_prompt:
+                # 프롬프트에서 클래스 순서 추출 (grounding_dino_manager와 동일한 로직)
+                prompt_classes = [cls.strip() for cls in text_prompt.split('.') if cls.strip()]
+                class_info_for_frontend = [
+                    {"id": idx, "name": cls_name}
+                    for idx, cls_name in enumerate(prompt_classes)
+                ]
+                logger.info(f"📋 프론트엔드로 전달할 class_info (프롬프트 순서): {class_info_for_frontend}")
+
             result = {
                 "success": True,
                 "filename": file.filename,
@@ -770,9 +790,10 @@ async def process_labeling(
                 "very_low_resolution": very_low_res,
                 "original_resolution": f"{original_width}x{original_height}",
                 "resize_applied": low_res,
-                "resize_method": "letterbox" if very_low_res else "standard" if low_res else "none"
+                "resize_method": "letterbox" if very_low_res else "standard" if low_res else "none",
+                "class_info": class_info_for_frontend  # ✅ 프롬프트 순서대로 class_info 추가
             }
-            
+
             logger.info(f"자동 라벨링 처리 완료 - 처리 시간: {processing_time:.3f}초, 객체 수: {len(boxes)}")
             
             return result
@@ -889,6 +910,14 @@ async def batch_process_labeling(data: Dict[str, Any]):
                 "height": info["size"][1]
             })
 
+        # Grounding DINO용 class_info 생성 (프롬프트 순서 유지)
+        prompt_classes = [cls.strip() for cls in text_prompt.split('.') if cls.strip()]
+        class_info_for_frontend = [
+            {"id": idx, "name": cls_name}
+            for idx, cls_name in enumerate(prompt_classes)
+        ]
+        logger.info(f"📋 배치 처리 - 프론트엔드로 전달할 class_info (프롬프트 순서): {class_info_for_frontend}")
+
         processing_time = time.time() - start_time
 
         logger.info(f"✅ 배치 자동 라벨링 완료 - 처리 시간: {processing_time:.3f}초, 이미지: {len(processed_results)}개")
@@ -897,7 +926,8 @@ async def batch_process_labeling(data: Dict[str, Any]):
             "success": True,
             "results": processed_results,
             "total_images": len(processed_results),
-            "processing_time": round(processing_time, 3)
+            "processing_time": round(processing_time, 3),
+            "class_info": class_info_for_frontend  # ✅ 프롬프트 순서대로 class_info 추가
         }
 
     except HTTPException:

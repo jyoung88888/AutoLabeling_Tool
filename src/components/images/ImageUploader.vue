@@ -2,13 +2,21 @@
   <div class="uploader-container">
     <div class="upload-section">
       <div class="file-actions mb-2">
-        <v-btn
-          prepend-icon="mdi-upload"
-          color="#4f9cf5"
-          size="small"
-          @click="triggerFileInput"
-          style="color: #fff; flex-grow: 1;"
-        >
+        <v-btn block color="white" variant="tonal" @click="triggerFileInput">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-check-icon lucide-check mr-2"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
           파일 선택 (JPG, PNG)
         </v-btn>
         <input
@@ -17,16 +25,22 @@
           accept=".jpg,.jpeg,.png"
           multiple
           @change="handleFileInput"
-          style="display: none;"
+          style="display: none"
         />
       </div>
-      
+
       <div v-if="uploadedFiles.length > 0" class="uploaded-files">
         <div class="file-header d-flex align-center justify-space-between">
-          <div class="text-subtitle-2" style="color: #e0e0e0;">
+          <div class="text-subtitle-2" style="color: #e0e0e0">
             업로드된 파일 ({{ uploadedFiles.length }}개)
           </div>
-          <v-btn icon="mdi-close" size="x-small" variant="text" color="#e0e0e0" @click="$emit('clear-files')"></v-btn>
+          <v-btn
+            icon="mdi-close"
+            size="x-small"
+            variant="text"
+            color="#e0e0e0"
+            @click="$emit('clear-files')"
+          ></v-btn>
         </div>
         <div class="file-list-container">
           <v-list dense class="file-list" bg-color="#333" color="#e0e0e0">
@@ -37,7 +51,22 @@
               density="compact"
             >
               <template v-slot:prepend>
-                <v-icon icon="mdi-image" size="small" color="#4f9cf5"></v-icon>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-image-icon lucide-image"
+                >
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
               </template>
               <v-list-item-title class="text-body-2">{{ file.name }}</v-list-item-title>
             </v-list-item>
@@ -53,22 +82,22 @@ export default {
   props: {
     uploadedFiles: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   emits: ['file-upload', 'clear-files'],
   methods: {
     triggerFileInput() {
-      this.$refs.fileInput.click();
+      this.$refs.fileInput.click()
     },
-    
+
     handleFileInput(event) {
       if (event.target.files) {
-        this.$emit('file-upload', event);
+        this.$emit('file-upload', event)
       }
-    }
-  }
-};
+    },
+  },
+}
 </script>
 
 <style scoped>
