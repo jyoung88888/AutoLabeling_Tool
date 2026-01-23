@@ -341,8 +341,15 @@ class ProjectService:
         for box in boxes:
             try:
                 # 클래스 정보 처리
-                class_name = box.get("class_name") or box.get("label", "unknown")
-                class_id = self._get_class_id(class_name, classes)
+                # box에 class_id가 이미 있으면 그대로 사용 (Grounding DINO 등)
+                if "class_id" in box and box["class_id"] is not None and box["class_id"] >= 0:
+                    class_id = int(box["class_id"])
+                    logger.info(f"box의 class_id 직접 사용: {class_id} (class_name: {box.get('class_name')})")
+                else:
+                    # class_id가 없으면 class_name으로부터 찾기 (YOLO 등)
+                    class_name = box.get("class_name") or box.get("label", "unknown")
+                    class_id = self._get_class_id(class_name, classes)
+                    logger.info(f"class_name으로부터 class_id 찾기: {class_name} → {class_id}")
                 
                 # 정규화된 좌표가 있으면 우선 사용 (서버에서 이미 계산됨)
                 normalized_coords = box.get("normalized_coords")

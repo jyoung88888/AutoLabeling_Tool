@@ -350,7 +350,23 @@ class GroundingDINOManager(BaseModel):
 
             # 프롬프트 순서에 따라 class_id 할당
             label_clean = label.strip().lower()
+
+            # 1. 정확히 일치하는 것 찾기
             class_id = class_id_mapping.get(label_clean, -1) if prompt_classes else -1
+
+            # 2. 정확히 일치하지 않으면 부분 매칭 시도 (Grounding DINO가 짧게 반환하는 경우)
+            if class_id == -1 and prompt_classes:
+                # label이 프롬프트 클래스의 일부인지 확인
+                for prompt_cls, prompt_id in class_id_mapping.items():
+                    # "circular sign"이 "circular sign with red and white pattern"의 시작 부분인지
+                    if prompt_cls.startswith(label_clean) or label_clean in prompt_cls:
+                        class_id = prompt_id
+                        logger.info(f"부분 매칭: '{label_clean}' → '{prompt_cls}' (ID: {class_id})")
+                        break
+
+                # 여전히 못 찾으면 경고
+                if class_id == -1:
+                    logger.warning(f"⚠️ 프롬프트에서 '{label_clean}'와 매칭되는 클래스를 찾지 못함!")
 
             detection = {
                 "class_id": class_id,  # 프롬프트 순서에 따른 class ID

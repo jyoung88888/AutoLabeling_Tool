@@ -979,11 +979,23 @@ async def get_file(filename: str):
         
         if not image_path:
             raise HTTPException(status_code=404, detail=f"파일을 찾을 수 없습니다: {filename}")
-            
+
+        # 이미지 타입 결정
+        file_ext = Path(image_path).suffix.lower()
+        if file_ext in ['.jpg', '.jpeg']:
+            media_type = "image/jpeg"
+        elif file_ext == '.png':
+            media_type = "image/png"
+        elif file_ext == '.gif':
+            media_type = "image/gif"
+        elif file_ext == '.webp':
+            media_type = "image/webp"
+        else:
+            media_type = "application/octet-stream"
+
         return FileResponse(
             path=str(image_path),
-            filename=Path(image_path).name,
-            media_type="application/octet-stream"
+            media_type=media_type
         )
         
     except HTTPException:

@@ -37,6 +37,7 @@
       :results="results"
       :project-path="projectPath"
       :model-classes="modelClasses"
+      :prompt-class-info="promptClassInfo"
       :confidence-threshold="confidenceThreshold"
       :text-prompt="textPrompt"
       :box-threshold="boxThreshold"
@@ -470,6 +471,7 @@ export default {
     const boxThreshold = ref(0.3)
     const textThreshold = ref(0.25)
     const promptApplied = ref(false)
+    const promptClassInfo = ref(null) // 프롬프트 순서 정보 저장
 
     // Project state
     const projectPath = ref('')
@@ -661,6 +663,19 @@ export default {
         results.value = labelingResults
         labelingComplete.value = true
         currentImageIndex.value = 1
+
+        // Grounding DINO 등의 프롬프트 클래스 정보 저장
+        console.log('[MainView] 라벨링 결과 확인:', {
+          resultsLength: labelingResults?.length,
+          firstResultClassInfo: labelingResults?.[0]?.class_info
+        })
+
+        if (labelingResults && labelingResults.length > 0 && labelingResults[0].class_info) {
+          promptClassInfo.value = labelingResults[0].class_info
+          console.log('✅ [MainView] 프롬프트 클래스 정보 저장됨:', JSON.stringify(promptClassInfo.value))
+        } else {
+          console.warn('⚠️ [MainView] class_info가 없습니다! promptClassInfo는 null로 유지됩니다.')
+        }
 
         // 리사이즈 통계 수집 및 사용자 피드백
         const resizedImages = labelingResults.filter((result) => result && result.wasResized)
@@ -1670,6 +1685,7 @@ export default {
       boxThreshold,
       textThreshold,
       promptApplied,
+      promptClassInfo,
 
       // Computed
       currentResult,

@@ -203,6 +203,11 @@ export default {
     modelClasses: {
       type: Object,
       default: () => ({})
+    },
+    // Grounding DINO 프롬프트 클래스 정보
+    promptClassInfo: {
+      type: Array,
+      default: () => null
     }
   },
   data() {
@@ -296,14 +301,16 @@ export default {
           projectName: this.projectName.trim(),
           images: images,
           lowConfidenceImages: this.lowConfidenceImages,
-          modelClasses: this.modelClasses
+          modelClasses: this.modelClasses,
+          promptClassInfo: this.promptClassInfo  // Grounding DINO 프롬프트 클래스 정보
         };
 
         console.log('프로젝트 저장 데이터:', {
           projectName: projectData.projectName,
           imageCount: projectData.images.length,
           lowConfidenceImagesCount: this.lowConfidenceImages.length,
-          lowConfidenceImagesSample: this.lowConfidenceImages.slice(0, 3)
+          lowConfidenceImagesSample: this.lowConfidenceImages.slice(0, 3),
+          promptClassInfo: projectData.promptClassInfo  // 디버깅용 로그 추가
         });
 
         this.currentSavingFile = '프로젝트 저장 중...';

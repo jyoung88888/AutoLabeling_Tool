@@ -109,7 +109,9 @@ export class AutoLabelingService {
         resizeMethod: resizeMethod,
         originalResolution: `${originalWidth}x${originalHeight}`,
         resizeReason: veryLowRes ? '매우 낮은 해상도 - 고품질 letterbox 리사이즈 적용' :
-                     wasResized ? '성능 향상을 위한 자동 리사이즈 적용' : null
+                     wasResized ? '성능 향상을 위한 자동 리사이즈 적용' : null,
+        // Grounding DINO 등의 프롬프트 순서 정보
+        class_info: result.class_info || null
       }
     } catch (error) {
       console.error(`이미지 처리 오류 (${file.name}):`, error)

@@ -452,13 +452,19 @@ export async function saveProjectLocal(projectData) {
     }
 
     // 클래스 정보를 class_info 형태로 변환하여 서버로 전달
-    console.log('modelClasses를 class_info 형태로 변환 중...');
+    console.log('class_info 생성 시작...');
+    console.log('전달된 promptClassInfo:', projectData.promptClassInfo);
     console.log('전달된 modelClasses:', projectData.modelClasses);
 
     let classInfo = null;
 
+    // promptClassInfo가 있으면 우선 사용 (Grounding DINO 프롬프트 순서 유지)
+    if (projectData.promptClassInfo && Array.isArray(projectData.promptClassInfo) && projectData.promptClassInfo.length > 0) {
+      classInfo = projectData.promptClassInfo;
+      console.log('✅ promptClassInfo 사용 (프롬프트 순서 유지):', classInfo);
+    }
     // modelClasses가 있으면 class_info 형태로 변환
-    if (projectData.modelClasses && typeof projectData.modelClasses === 'object' && Object.keys(projectData.modelClasses).length > 0) {
+    else if (projectData.modelClasses && typeof projectData.modelClasses === 'object' && Object.keys(projectData.modelClasses).length > 0) {
       try {
         // {0: 'person', 1: 'helmet', ...} 형태를 [{"id": 0, "name": "person"}, ...] 형태로 변환
         classInfo = Object.entries(projectData.modelClasses)

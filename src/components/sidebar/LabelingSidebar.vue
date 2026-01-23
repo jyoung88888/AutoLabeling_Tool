@@ -232,6 +232,7 @@
           :low-confidence-images="lowConfidenceImages"
           :available-classes="availableClasses"
           :model-classes="modelClasses"
+          :prompt-class-info="promptClassInfo"
           :results="results"
           @save-complete="$emit('projectSaveComplete', $event)"
         />
@@ -418,6 +419,11 @@ export default {
     modelClasses: {
       type: Object,
       default: () => ({}),
+    },
+    // Grounding DINO 프롬프트 클래스 정보
+    promptClassInfo: {
+      type: Array,
+      default: () => null,
     },
     // 신뢰도 임계값
     confidenceThreshold: {
