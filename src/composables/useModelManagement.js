@@ -44,8 +44,9 @@ export function useModelManagement() {
             const modelList = data.models[modelType]
             const count = Array.isArray(modelList) ? modelList.length : 0
             return {
-              text: `${modelType} (${count}개 모델)`,
-              value: modelType
+              text: count > 0 ? `${modelType} (${count}개 모델)` : modelType,
+              value: modelType,
+              count: count
             }
           })
         }
@@ -85,7 +86,8 @@ export function useModelManagement() {
     if (!targetModelType || !targetModelType.value) {
       console.log('모델 타입이 선택되지 않았습니다. 상세 정보를 초기화합니다.')
       modelDetails.value = []
-      selectedModel.value = null
+      // selectedModel.value = null - 아코디언 전환 시 선택 유지를 위해 제거
+      // resetModelStatus() - 상태 유지를 위해 제거
       return
     }
 
@@ -113,7 +115,8 @@ export function useModelManagement() {
       if (!data || data.details === undefined) {
         console.warn('모델 상세 정보가 없습니다:', data)
         modelDetails.value = []
-        selectedModel.value = null
+        // selectedModel.value = null - 아코디언 전환 시 선택 유지를 위해 제거
+        // resetModelStatus() - 상태 유지를 위해 제거
         return
       }
 
@@ -133,11 +136,14 @@ export function useModelManagement() {
         modelDetails.value = []
       }
 
-      selectedModel.value = null
+      // 아코디언 변경 시 선택 상태와 완료 상태를 유지하기 위해 제거
+      // selectedModel.value = null
+      // resetModelStatus()
     } catch (e) {
       console.error('모델 상세 정보 가져오기 오류:', e)
       modelDetails.value = []
       selectedModel.value = null
+      resetModelStatus()
       alert(`모델 상세 정보 가져오기 실패: ${e.message}`)
     }
   }
@@ -278,6 +284,11 @@ export function useModelManagement() {
     }
   }
 
+  const resetModelStatus = () => {
+    modelStatusSuccess.value = false
+    modelStatusMessage.value = ''
+  }
+
   return {
     // State
     models,
@@ -296,6 +307,7 @@ export function useModelManagement() {
     refreshModels,
     fetchModelDetails,
     loadModel,
-    loadModelClasses
+    loadModelClasses,
+    resetModelStatus
   }
 }

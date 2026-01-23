@@ -55,6 +55,7 @@
       @refresh-models="refreshModels"
       @load-model="loadModel"
       @fetch-model-details="fetchModelDetails"
+      @reset-model-status="resetModelStatus"
       @file-upload="handleFileUpload"
       @clear-files="clearUploadedFiles"
       @toggle-all-classes="toggleAllClasses"
@@ -502,6 +503,7 @@ export default {
       loadModel,
       fetchModelDetails,
       loadModelClasses,
+      resetModelStatus,
     } = useModelManagement()
 
     const {
@@ -1584,6 +1586,23 @@ export default {
       window.dispatchEvent(new Event('resize'))
     })
 
+    // 모델 선택이 변경될 때 상태 리셋 (실제 값이 변경되었을 때만)
+    watch(selectedModel, (newVal, oldVal) => {
+      const newValue = newVal?.value
+      const oldValue = oldVal?.value
+
+      if (newValue !== oldValue && newValue && oldValue && modelStatusSuccess.value) {
+        resetModelStatus()
+      }
+    })
+
+    // selectedModelType 변경은 아코디언 전환일 뿐이므로 리셋하지 않음
+    // watch(selectedModelType, (newVal, oldVal) => {
+    //   if (newVal !== oldVal && modelStatusSuccess.value) {
+    //     resetModelStatus()
+    //   }
+    // })
+
     // 모델 클래스가 변경될 때 availableClasses 업데이트
     watch(
       modelClasses,
@@ -1696,6 +1715,7 @@ export default {
       loadModel,
       loadModelClasses,
       fetchModelDetails,
+      resetModelStatus,
       handleApplyPrompt,
       handleFileUpload,
       clearUploadedFiles,

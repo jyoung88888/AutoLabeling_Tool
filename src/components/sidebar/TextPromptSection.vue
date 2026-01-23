@@ -26,9 +26,9 @@
 
     <v-list-item>
       <div class="text-prompt-section">
-        <v-alert type="info" variant="tonal" density="compact" class="mb-3" border="start">
-          탐지할 객체를 텍스트로 입력하세요. (예: person. helmet. car.)
-        </v-alert>
+        <p class="text-grey-lighten-1 text-caption font-weight-light mb-2">
+          탐지할 객체를 텍스트로 입력하세요. <br />(예: person. helmet. car.)
+        </p>
 
         <v-textarea
           v-model="localTextPrompt"
@@ -37,7 +37,6 @@
           rows="3"
           density="compact"
           variant="outlined"
-          color="#4f9cf5"
           class="mb-2"
           hide-details
           hint="여러 객체는 마침표(.)로 구분하세요"
@@ -91,8 +90,7 @@
             :min="0.1"
             :max="1.0"
             :step="0.05"
-            color="#4f9cf5"
-            track-color="#333"
+            color="primary"
             thumb-label
             density="compact"
             @update:model-value="updateBoxThreshold"
@@ -109,8 +107,7 @@
             :min="0.1"
             :max="1.0"
             :step="0.05"
-            color="#4f9cf5"
-            track-color="#333"
+            color="primary"
             thumb-label
             density="compact"
             @update:model-value="updateTextThreshold"

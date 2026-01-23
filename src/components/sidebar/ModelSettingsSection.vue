@@ -95,91 +95,134 @@
         </v-btn>
       </v-card-title>
       <v-card-text class="model-selection-container px-3 pb-3">
-        <v-select
-          ref="modelSelect"
-          :model-value="selectedModelType"
-          @update:model-value="handleModelTypeUpdate"
-          :items="models"
-          placeholder="모델 선택"
-          variant="outlined"
-          density="compact"
-          hide-details
-          :menu-props="{ maxHeight: '400px', maxWidth: '500px', minWidth: '100%' }"
-          item-title="text"
-          item-value="value"
-          return-object
-          style="width: 100%"
-          class="mb-2 model-select dark-select"
-          prepend-inner-icon="mdi-database"
-          base-color="#e0e0e0"
-        ></v-select>
+        <!-- Accordion 형태의 모델 선택 -->
+        <v-expansion-panels v-model="expandedPanel" variant="accordion">
+          <v-expansion-panel
+            v-for="modelType in models"
+            :key="modelType.value"
+            :value="modelType.value"
+          >
+            <v-expansion-panel-title @click="handlePanelClick(modelType)" class="px-3 py-2">
+              <div class="d-flex align-center justify-space-between">
+                <span class="text-grey-lighten-5 d-flex align-center ga-2">
+                  <div class="bg-grey-darken-3 bg-opacity-30 text-light-blue pa-1 rounded d-flex">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-layers-icon lucide-layers"
+                    >
+                      <path
+                        d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"
+                      />
+                      <path
+                        d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"
+                      />
+                      <path
+                        d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"
+                      />
+                    </svg>
+                  </div>
+                  {{ modelType.value }}
+                </span>
+                <span class="model-count">{{ getModelCount(modelType) }}</span>
+              </div>
+            </v-expansion-panel-title>
 
-        <div v-if="modelDetails.length > 0" style="width: 100%; padding: 0 8px">
-          <v-select
-            ref="detailModelSelect"
-            :model-value="selectedModel"
-            @update:model-value="$emit('update:selectedModel', $event)"
-            :items="modelDetails"
-            placeholder="세부 모델 선택"
-            variant="outlined"
-            density="compact"
-            hide-details
-            :menu-props="{ maxHeight: '400px', maxWidth: '500px', minWidth: '100%' }"
-            item-title="text"
-            item-value="value"
-            return-object
-            style="width: 100%"
-            class="mb-2 model-select dark-select"
-            prepend-inner-icon="mdi-cube"
-            base-color="#e0e0e0"
-          ></v-select>
-        </div>
+            <v-expansion-panel-text>
+              <v-radio-group
+                v-if="getCachedDetails(modelType).length > 0"
+                :model-value="selectedModel"
+                @update:model-value="handleModelUpdate"
+                hide-details
+              >
+                <v-radio
+                  v-for="detail in getCachedDetails(modelType)"
+                  :key="detail.value"
+                  :label="detail.text"
+                  :value="detail"
+                  color="light-blue"
+                  density="compact"
+                  class="mb-1 radio-small"
+                >
+                  <template v-slot:label>
+                    <div class="text-caption text-grey-lighten-4">{{ detail.text }}</div>
+                  </template>
+                </v-radio>
+              </v-radio-group>
 
-        <!-- 모델 상세 정보가 없을 때 알림 -->
-        <div
-          v-else-if="selectedModelType && modelDetails.length === 0"
-          style="width: 100%; padding: 0 8px"
-        >
-          <v-alert density="compact" type="warning" variant="tonal" class="mb-2">
-            선택된 모델 타입에 사용 가능한 모델이 없습니다.
-          </v-alert>
-        </div>
+              <p
+                v-else-if="
+                  modelDetailsCache[modelType.value] !== undefined &&
+                  getCachedDetails(modelType).length === 0
+                "
+                class="text-caption text-grey-lighten-1"
+              >
+                사용 가능한 모델이 없습니다.
+              </p>
+
+              <div v-else class="d-flex align-center justify-center pa-3">
+                <v-progress-circular indeterminate size="24" width="2"></v-progress-circular>
+              </div>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
 
         <!-- 모델 선택 버튼 -->
         <v-btn
           block
           @click="$emit('loadModel')"
-          color="white"
+          :color="buttonColor"
           variant="tonal"
-          :disabled="!selectedModel"
+          :disabled="!selectedModel || isLoadingModel"
+          :loading="isLoadingModel"
+          class="mb-2"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-check-icon lucide-check mr-2"
-          >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-          모델 선택
+          <template v-if="!isLoadingModel">
+            <svg
+              v-if="modelStatusSuccess"
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-check-circle mr-2"
+            >
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <path d="m9 11 3 3L22 4" />
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-check-icon lucide-check mr-2"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </template>
+          {{ buttonText }}
         </v-btn>
 
-        <template v-if="modelStatusMessage">
-          <v-alert :type="alertType" variant="tonal" density="compact">
-            <template v-if="isLoadingModel" #prepend>
-              <v-progress-circular
-                indeterminate
-                size="18"
-                width="2"
-                color="info"
-              ></v-progress-circular>
-            </template>
+        <!-- 에러 alert만 표시 -->
+        <template v-if="modelStatusMessage && !isLoadingModel && !modelStatusSuccess">
+          <v-alert type="error" variant="tonal" density="compact" class="mb-2">
             {{ modelStatusMessage }}
           </v-alert>
         </template>
@@ -251,10 +294,25 @@ export default {
       default: () => ['알 수 없음'],
     },
   },
+  data() {
+    return {
+      expandedPanel: null,
+      modelDetailsCache: {}, // 타입별 세부 모델 캐시
+    }
+  },
   computed: {
     alertType() {
       if (this.isLoadingModel) return 'info'
       return this.modelStatusSuccess ? 'success' : 'error'
+    },
+    buttonColor() {
+      if (this.modelStatusSuccess) return 'success'
+      return undefined
+    },
+    buttonText() {
+      if (this.isLoadingModel) return '모델 불러오는 중...'
+      if (this.modelStatusSuccess) return '모델 선택 완료'
+      return '모델 선택'
     },
   },
   emits: [
@@ -264,21 +322,90 @@ export default {
     'loadModel',
     'fetchModelDetails',
     'uploadSuccess',
+    'resetModelStatus',
   ],
+  watch: {
+    selectedModel(newVal, oldVal) {
+      // 실제 모델 값이 변경되었을 때만 버튼 상태 초기화
+      const newValue = newVal?.value
+      const oldValue = oldVal?.value
+
+      if (newValue !== oldValue && newValue && oldValue && this.modelStatusSuccess) {
+        this.$emit('resetModelStatus')
+      }
+    },
+    modelDetails(newDetails) {
+      // modelDetails가 변경되면 현재 선택된 타입의 캐시에 저장
+      if (this.selectedModelType) {
+        this.modelDetailsCache[this.selectedModelType.value] = newDetails
+      }
+    },
+  },
   methods: {
     getDeviceInfoIcon(index) {
       const icons = ['mdi-memory', 'mdi-chip', 'mdi-harddisk', 'mdi-speedometer']
       return icons[index] || 'mdi-information'
     },
-    handleModelTypeUpdate(value) {
-      this.$emit('update:selectedModelType', value)
-      this.$emit('fetchModelDetails', value)
+    handlePanelClick(modelType) {
+      // 항상 selectedModelType 업데이트
+      this.$emit('update:selectedModelType', modelType)
+
+      // 캐시에 없으면 fetchModelDetails 호출
+      if (this.modelDetailsCache[modelType.value] === undefined) {
+        this.$emit('fetchModelDetails', modelType)
+      }
+      // 아코디언 클릭 시에는 resetModelStatus 호출 안함
+    },
+    handleModelUpdate(value) {
+      this.$emit('update:selectedModel', value)
+      // 라디오 버튼 변경 시에만 리셋 (watch에서 처리)
+    },
+    getCachedDetails(modelType) {
+      return this.modelDetailsCache[modelType.value] || []
+    },
+    getModelCount(modelType) {
+      // 캐시에 있으면 캐시된 개수 표시
+      const cached = this.modelDetailsCache[modelType.value]
+      if (cached && cached.length > 0) {
+        return `(${cached.length}개 모델)`
+      }
+      // 초기 count 표시
+      if (modelType.count > 0) {
+        return `(${modelType.count}개 모델)`
+      }
+      return ''
     },
   },
 }
 </script>
 
 <style scoped>
+/* Accordion 패널 스타일 */
+
+/* v-expansion-panel-text wrapper padding */
+:deep(.v-expansion-panel-text__wrapper) {
+  padding: 4px 12px 8px !important;
+}
+
+/* 라디오 버튼 크기 조정 - 체크 부분만 */
+.radio-small :deep(.v-selection-control__input) {
+  transform: scale(0.75);
+}
+
+.radio-small :deep(.v-selection-control__input .v-icon) {
+  font-size: 18px;
+}
+
+.model-count {
+  font-size: 12px;
+  color: #888;
+  margin-left: 8px;
+}
+
+.model-radio:last-child {
+  margin-bottom: 0;
+}
+
 .device-info-section {
   width: 100%;
   padding: 8px;

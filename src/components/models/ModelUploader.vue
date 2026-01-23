@@ -74,10 +74,9 @@
           </template>
           <template v-slot:title>
             <div class="d-flex flex-column">
-              <span class="text-body-2">
-                모델 파일을 <br />
+              <span class="text-body-2 text-left">
                 <strong>드래그 앤 드롭</strong> 또는<br />
-                <strong>클릭</strong>하여 업로드
+                <strong>클릭</strong>하여 모델 추가
               </span>
               <span class="text-caption text-grey">(.pt,.pth,.onnx,.engine)</span>
             </div>

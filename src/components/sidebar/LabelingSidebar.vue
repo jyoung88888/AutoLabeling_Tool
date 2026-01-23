@@ -110,6 +110,7 @@
           @refresh-models="$emit('refreshModels')"
           @load-model="$emit('loadModel')"
           @fetch-model-details="$emit('fetchModelDetails', $event)"
+          @reset-model-status="handleResetModelStatus"
         />
 
         <!-- 클래스 선택 섹션 (YOLO 모델용) -->
@@ -457,6 +458,7 @@ export default {
     'refreshModels',
     'loadModel',
     'fetchModelDetails',
+    'resetModelStatus',
     'fileUpload',
     'clearFiles',
     'toggleAllClasses',
@@ -484,6 +486,9 @@ export default {
     },
     handleCollapseSidebar() {
       this.$emit('collapseSidebar')
+    },
+    handleResetModelStatus() {
+      this.$emit('resetModelStatus')
     },
     // ProjectSaver 다이얼로그 열기
     openProjectSaverDialog() {
