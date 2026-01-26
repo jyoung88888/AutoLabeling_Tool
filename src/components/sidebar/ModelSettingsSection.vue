@@ -12,21 +12,12 @@
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
-          class="lucide lucide-file-cog-icon lucide-file-cog"
+          class="lucide lucide-settings2-icon lucide-settings-2"
         >
-          <path
-            d="M13.85 22H18a2 2 0 0 0 2-2V8a2 2 0 0 0-.586-1.414l-4-4A2 2 0 0 0 14 2H6a2 2 0 0 0-2 2v6.6"
-          />
-          <path d="M14 2v5a1 1 0 0 0 1 1h5" />
-          <path d="m3.305 19.53.923-.382" />
-          <path d="m4.228 16.852-.924-.383" />
-          <path d="m5.852 15.228-.383-.923" />
-          <path d="m5.852 20.772-.383.924" />
-          <path d="m8.148 15.228.383-.923" />
-          <path d="m8.53 21.696-.382-.924" />
-          <path d="m9.773 16.852.922-.383" />
-          <path d="m9.773 19.148.922.383" />
-          <circle cx="7" cy="18" r="3" />
+          <path d="M14 17H5" />
+          <path d="M19 7h-9" />
+          <circle cx="17" cy="17" r="3" />
+          <circle cx="7" cy="7" r="3" />
         </svg>
       </div>
       모델 설정
@@ -39,13 +30,13 @@
       class="mb-3"
     />
 
-    <v-card class="model-upload-card mb-4" color="#2a2a2a" elevation="0">
+    <v-card class="model-upload-card mb-3" color="#2a2a2a" elevation="0">
       <v-card-title
         class="text-subtitle-1 font-weight-bold pa-3 d-flex align-center justify-space-between"
         style="color: #e0e0e0"
       >
         <div class="d-flex align-center ga-2">
-          <div class="bg-grey-darken-3 bg-opacity-30 text-light-blue pa-1 rounded d-flex">
+          <div class="bg-grey-darken-3 bg-opacity-30 text-light-blue-lighten-3 pa-1 rounded d-flex">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -69,7 +60,7 @@
         </div>
         <v-btn
           @click="$emit('refreshModels')"
-          color="light-blue"
+          color="light-blue-lighten-3"
           size="small"
           variant="tonal"
           icon
@@ -105,7 +96,9 @@
             <v-expansion-panel-title @click="handlePanelClick(modelType)" class="px-3 py-2">
               <div class="d-flex align-center justify-space-between">
                 <span class="text-grey-lighten-5 d-flex align-center ga-2">
-                  <div class="bg-grey-darken-3 bg-opacity-30 text-light-blue pa-1 rounded d-flex">
+                  <div
+                    class="bg-grey-darken-3 bg-opacity-30 text-light-blue-lighten-3 pa-1 rounded d-flex"
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="14"
@@ -147,7 +140,7 @@
                   :key="detail.value"
                   :label="detail.text"
                   :value="detail"
-                  color="light-blue"
+                  color="light-blue-lighten-3"
                   density="compact"
                   class="mb-1 radio-small"
                 >
@@ -178,11 +171,9 @@
         <v-btn
           block
           @click="$emit('loadModel')"
-          :color="buttonColor"
           variant="tonal"
-          :disabled="!selectedModel || isLoadingModel"
+          :disabled="!selectedModel || isLoadingModel || modelStatusSuccess"
           :loading="isLoadingModel"
-          class="mb-2"
         >
           <template v-if="!isLoadingModel">
             <svg
@@ -304,10 +295,6 @@ export default {
     alertType() {
       if (this.isLoadingModel) return 'info'
       return this.modelStatusSuccess ? 'success' : 'error'
-    },
-    buttonColor() {
-      if (this.modelStatusSuccess) return 'success'
-      return undefined
     },
     buttonText() {
       if (this.isLoadingModel) return '모델 불러오는 중...'
@@ -555,10 +542,6 @@ export default {
 .model-detail-text {
   font-size: 13px;
   color: #e0e0e0;
-}
-
-.check-icon {
-  color: #4f9cf5;
 }
 
 .divider-line {

@@ -114,7 +114,6 @@
         />
 
         <!-- 클래스 선택 섹션 (YOLO 모델용) -->
-        <v-divider v-if="modelLoaded && !supportsTextPrompt"></v-divider>
         <ClassSelectionSection
           v-if="modelLoaded && !supportsTextPrompt"
           :available-classes="availableClasses"
@@ -126,17 +125,19 @@
           :selected-classes-info="selectedClassesInfo"
           :class-selection-applied="classSelectionApplied"
           :class-selection-message="imageStatusMessage"
+          :confidence-threshold="confidenceThreshold"
           @update:selected-classes="$emit('update:selectedClasses', $event)"
           @update:select-all-classes="$emit('update:selectAllClasses', $event)"
+          @update:confidence-threshold="$emit('update:confidenceThreshold', $event)"
           @toggle-all-classes="$emit('toggleAllClasses')"
           @select-all-classes-changed="$emit('selectAllClassesChanged', $event)"
           @check-selected-classes="$emit('checkSelectedClasses')"
           @apply-class-selection="$emit('applyClassSelection')"
           @dismiss-class-change-alert="$emit('dismissClassChangeAlert')"
+          @selection-changed="$emit('classSelectionChanged')"
         />
 
         <!-- 텍스트 프롬프트 섹션 (Grounding DINO용) -->
-        <v-divider v-if="modelLoaded && supportsTextPrompt"></v-divider>
         <TextPromptSection
           v-if="modelLoaded && supportsTextPrompt"
           :text-prompt="textPrompt"
@@ -147,14 +148,6 @@
           @update:box-threshold="$emit('update:boxThreshold', $event)"
           @update:text-threshold="$emit('update:textThreshold', $event)"
           @apply-prompt="$emit('applyPrompt')"
-        />
-
-        <!-- 신뢰도 설정 섹션 (YOLO 모델용) -->
-        <v-divider v-if="modelLoaded && !supportsTextPrompt"></v-divider>
-        <ConfidenceSettingsSection
-          v-if="modelLoaded && !supportsTextPrompt"
-          :confidence-threshold="confidenceThreshold"
-          @update:confidence-threshold="$emit('update:confidenceThreshold', $event)"
         />
 
         <!-- 이미지 선택 섹션 -->
@@ -168,35 +161,43 @@
         />
 
         <!-- 자동 라벨링 시작 버튼 -->
-        <v-divider v-if="modelLoaded"></v-divider>
-        <v-list-item v-if="modelLoaded">
+        <div class="px-2 mb-4">
           <v-btn
             block
             @click="$emit('startLabeling')"
-            color="#4caf50"
-            size="small"
             :disabled="
-              !canStartLabeling ||
-              (!supportsTextPrompt && !classSelectionApplied) ||
-              (supportsTextPrompt && !promptApplied)
+              modelLoaded &&
+              (!canStartLabeling ||
+                (!supportsTextPrompt && !classSelectionApplied) ||
+                (supportsTextPrompt && !promptApplied))
             "
-            class="mb-2"
-            prepend-icon="mdi-play"
-            style="color: #fff"
+            color="amber-lighten-1"
+            variant="tonal"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-play-icon lucide-play mr-2"
+            >
+              <path
+                d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"
+              />
+            </svg>
             자동 라벨링 시작
           </v-btn>
-        </v-list-item>
+        </div>
 
         <!-- 자동 라벨링 진행 상태 표시 (버튼 바로 밑에) -->
         <v-divider v-if="modelLoaded && isProcessing"></v-divider>
         <v-list-item v-if="modelLoaded && isProcessing">
-          <v-card
-            class="processing-progress-card pa-3 mb-2"
-            variant="outlined"
-            color="#252525"
-            border
-          >
+          <v-card class="processing-progress-card pa-3 mb-2" variant="outlined" color="#252525">
             <v-card-title
               class="pb-1 px-1 text-subtitle-2 font-weight-bold d-flex align-center justify-space-between"
               style="color: #e0e0e0"
@@ -224,7 +225,7 @@
         </v-list-item>
 
         <!-- 프로젝트 저장 섹션 -->
-        <v-divider></v-divider>
+        <v-divider v-if="modelLoaded"></v-divider>
         <ProjectSaver
           ref="projectSaver"
           v-show="modelLoaded"
@@ -255,7 +256,6 @@ import ModelSettingsSection from './ModelSettingsSection.vue'
 import ImageSelectionSection from './ImageSelectionSection.vue'
 import ClassSelectionSection from './ClassSelectionSection.vue'
 import TextPromptSection from './TextPromptSection.vue'
-import ConfidenceSettingsSection from './ConfidenceSettingsSection.vue'
 import LowConfidenceSection from './LowConfidenceSection.vue'
 import ProjectLoader from '../projects/ProjectLoader.vue'
 import ProjectSaver from '../projects/ProjectSaver.vue'
@@ -268,7 +268,6 @@ export default {
     ImageSelectionSection,
     ClassSelectionSection,
     TextPromptSection,
-    ConfidenceSettingsSection,
     LowConfidenceSection,
     ProjectLoader,
     ProjectSaver,
@@ -466,6 +465,7 @@ export default {
     'checkSelectedClasses',
     'applyClassSelection',
     'dismissClassChangeAlert',
+    'classSelectionChanged',
     'startLabeling',
     'stopLabeling',
     'goToImage',

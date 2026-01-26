@@ -19,7 +19,7 @@
           <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
         </svg>
       </div>
-      이미지 선택
+      이미지 선택 및 라벨링 시작
     </div>
     <ImageUploader
       :uploaded-files="uploadedImages"

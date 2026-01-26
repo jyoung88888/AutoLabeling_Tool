@@ -188,6 +188,11 @@ export function useImageManagement() {
     showClassChangeAlert.value = false
   }
 
+  const handleClassSelectionChanged = () => {
+    // 선택이 변경되면 적용 상태를 해제
+    classSelectionApplied.value = false
+  }
+
       const updateAvailableClassesFromModel = (modelClassesData) => {
     console.log('=== 사이드바 클래스 선택 UI 업데이트 시작 ===')
     console.log('받은 모델 클래스 데이터:', modelClassesData)
@@ -271,6 +276,7 @@ export function useImageManagement() {
     checkSelectedClasses,
     applyClassSelection,
     dismissClassChangeAlert,
+    handleClassSelectionChanged,
     updateAvailableClassesFromModel
   }
 }

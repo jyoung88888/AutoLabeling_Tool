@@ -62,6 +62,7 @@
       @select-all-classes-changed="selectAllClassesChanged"
       @check-selected-classes="checkSelectedClasses"
       @apply-class-selection="applyClassSelection"
+      @class-selection-changed="handleClassSelectionChanged"
       @apply-prompt="handleApplyPrompt"
       @dismiss-class-change-alert="dismissClassChangeAlert"
       @open-load-project="openLoadProjectDialog"
@@ -526,6 +527,7 @@ export default {
       checkSelectedClasses,
       applyClassSelection,
       dismissClassChangeAlert,
+      handleClassSelectionChanged,
       updateAvailableClassesFromModel,
     } = useImageManagement()
 
@@ -1724,6 +1726,7 @@ export default {
       checkSelectedClasses,
       applyClassSelection,
       dismissClassChangeAlert,
+      handleClassSelectionChanged,
       loadSelectedProject,
       handleProjectSaveComplete,
       startLabeling,
