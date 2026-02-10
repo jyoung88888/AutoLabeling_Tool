@@ -9,7 +9,7 @@
     <!-- 메인 이미지 뷰어 영역 -->
     <div class="image-viewer" ref="imageViewer">
       <div class="image-container" ref="imageContainer" @wheel="handleWheel">
-        <div class="konva-container" ref="konvaContainer">
+        <div class="konva-container" ref="konvaContainer" @pointermove="handleNativePointerMove">
           <v-stage
             ref="stage"
             :config="stageConfig"
@@ -174,6 +174,34 @@
                   shadowColor: 'rgba(0, 0, 0, 0.3)',
                   shadowBlur: 2,
                   shadowOffset: { x: 1, y: 1 }
+                }"
+              />
+            </v-layer>
+
+            <!-- 마우스 십자선 가이드 레이어 -->
+            <v-layer :config="{ listening: false, hitGraphEnabled: false }">
+              <!-- 수직선 -->
+              <v-line
+                v-if="currentMousePos.x > 0 && currentMousePos.y > 0"
+                :config="{
+                  points: [currentMousePos.x, 0, currentMousePos.x, imageHeight],
+                  stroke: 'red',
+                  strokeWidth: 1,
+                  opacity: 0.8,
+                  listening: false,
+                  perfectDrawEnabled: false
+                }"
+              />
+              <!-- 수평선 -->
+              <v-line
+                v-if="currentMousePos.x > 0 && currentMousePos.y > 0"
+                :config="{
+                  points: [0, currentMousePos.y, imageWidth, currentMousePos.y],
+                  stroke: 'red',
+                  strokeWidth: 1,
+                  opacity: 0.8,
+                  listening: false,
+                  perfectDrawEnabled: false
                 }"
               />
             </v-layer>
@@ -1551,6 +1579,30 @@ export default {
       tempBox.value = { x, y, width, height }
     }
 
+    // Native DOM pointermove - 드래그 중에도 크로스헤어 업데이트 보장
+    const handleNativePointerMove = (event) => {
+      const stageNode = stage.value?.getStage()
+      if (!stageNode) return
+
+      const container = stageNode.container()
+      if (!container) return
+
+      const rect = container.getBoundingClientRect()
+      const scaleX = stageNode.scaleX() || 1
+      const offsetX = stageNode.x() || 0
+      const offsetY = stageNode.y() || 0
+
+      const pointerX = event.clientX - rect.left
+      const pointerY = event.clientY - rect.top
+
+      const imageX = (pointerX - offsetX) / scaleX
+      const imageY = (pointerY - offsetY) / scaleX
+
+      if (imageX >= 0 && imageX <= imageWidth.value && imageY >= 0 && imageY <= imageHeight.value) {
+        currentMousePos.value = { x: imageX, y: imageY }
+      }
+    }
+
     const handleMouseUp = async (event) => {
       // Space+드래그 종료 (최우선 처리)
       if (isDraggingStage.value) {
@@ -1892,7 +1944,7 @@ export default {
     const handleMouseOut = () => {
       const container = konvaContainer.value
       if (container) {
-        container.style.cursor = 'default'
+        container.style.cursor = 'crosshair'
       }
     }
 
@@ -2861,6 +2913,7 @@ export default {
       selectBox,
       handleMouseDown,
       handleMouseMove,
+      handleNativePointerMove,
       handleMouseUp,
       handleResize,
       handleResizeEnd,
@@ -2905,7 +2958,11 @@ export default {
       undoLastAction,
       clearHistory,
       stepZoomIn,
-      stepZoomOut
+      stepZoomOut,
+
+      // Crosshair guide
+      imageWidth,
+      imageHeight
     }
   }
 }
@@ -2938,6 +2995,7 @@ export default {
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   background: #000;
+  cursor: crosshair;
 }
 
 .info-panel-container {

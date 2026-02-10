@@ -543,7 +543,9 @@ class DevServerManager:
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5분 타임아웃
-                shell=True
+                shell=True,
+                encoding='utf-8',
+                errors='replace'
             )
             
             if result.returncode == 0:
@@ -661,7 +663,9 @@ class DevServerManager:
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5분 타임아웃
-                shell=True
+                shell=True,
+                encoding='utf-8',
+                errors='replace'
             )
             
             if result.returncode == 0:
@@ -718,6 +722,8 @@ class DevServerManager:
             
             # 환경 변수 설정
             env = os.environ.copy()
+            env['PYTHONIOENCODING'] = 'utf-8'
+            env['PYTHONUTF8'] = '1'
             
             # 개발 모드에서만 --reload 옵션과 개발 모드 표시를 위한 환경 변수 설정
             if self.mode == 'dev':
@@ -745,6 +751,8 @@ class DevServerManager:
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
                 bufsize=1,
+                encoding='utf-8',
+                errors='replace',
                 env=env  # 환경 변수 전달
             )
             
@@ -785,6 +793,8 @@ class DevServerManager:
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
                 bufsize=1,
+                encoding='utf-8',
+                errors='replace',
                 shell=True
             )
             
